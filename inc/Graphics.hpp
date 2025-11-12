@@ -289,6 +289,7 @@ public:
             SDL_RenderCopy(renderer_, tempTexture, nullptr, &dstRect);
 
             SDL_DestroyTexture(tempTexture);
+            SDL_FreeSurface(text_surface);
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Draw Text: " << e.what() << '\n';
         }
@@ -317,7 +318,7 @@ public:
     
             SDL_RenderCopy(renderer_, tempTexture, nullptr, &dstRect);
 
-             SDL_DestroyTexture(tempTexture);
+            SDL_DestroyTexture(tempTexture);
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Draw Image: " << e.what() << '\n';
         }

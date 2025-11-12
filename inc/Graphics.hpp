@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <string>
 #include <typeinfo>
 #include <cassert>
@@ -59,46 +60,36 @@ RendererGuard(SDL_Renderer* renderer) : renderer_(renderer) {
     }
 };
 
+struct Font : public dr4::Font {
+    constexpr static int FONT_SIZE = 24;
+    int size_ = FONT_SIZE;
+    TTF_Font *font_;
 
-// struct Text {
+    Font() = default;
+    explicit Font(int size): size_(size) {}
 
-//     enum class VAlign {
-//         UNKNOWN = -1,
-//         TOP,
-//         MIDDLE,
-//         BASELINE,
-//         BOTTOM
-//     };
+    ~Font() override {
+        if (font_) TTF_CloseFont(font_);
+    }
 
-//     const std::string text;
-//     Vec2f pos;
-//     Color color = Color(255, 0, 0, 255);
-//     float fontSize = 20;
-//     VAlign valign = VAlign::TOP;
+    void loadFromFile( const std::string& path ) override {
+        std::cout << "font load from file\n";
+        if (font_) TTF_CloseFont(font_);
+        font_ = TTF_OpenFont(path.c_str(), size_);
+        if (!font_) {
+            printf("TTF_open font failed: %s\n", TTF_GetError());
+        }
+    }
 
-//     // TODO: return of GetBounds()?
-//     // virtual Rect2f GetBounds() const = 0;
+    void setFontSize(const int newFontSize) const {
+        assert(font_);
+    
+        if (TTF_SetFontSize(font_, newFontSize) == -1) {
+            printf("Resize failed: %s\n", TTF_GetError());
+        }
+    }
+};
 
-// };
-
-// class Text : public dr4::Text {
-
-// };
-
-
-// struct Rectangle : public dr4::Rectangle {
-//     dr4::Rect2f rect;
-//     SDL_Color fill;
-//     float borderThickness = 0;
-//     SDL_Color borderColor = SDL_Color(255, 0, 0, 255);
-
-//     ~Rectangle() override = default;
-
-//     void SetRect(const dr4::Rect2f &inpRect) override { rect = inpRect; }
-//     void SetFill(const dr4::Color &color) override { fill = convertToSDLColor(color); }
-//     void SetBorderThickness(float thickness) override { borderThickness = thickness; }
-//     void SetBorderColor(const dr4::Color &color) override { borderColor = convertToSDLColor(color); }
-// };
 
 class Image : public dr4::Image {
     static constexpr int BIT_PER_PIXEL = 32;
@@ -262,8 +253,48 @@ public:
         }
     }
 
-    void Draw(const dr4::Text &text) {}
-    void Draw(const dr4::Image &img, const dr4::Vec2f &pos) {
+    void Draw(const dr4::Text &text) override {
+        try {
+            const Font *font = dynamic_cast<const Font *>(text.font);
+            if (!font) return;
+
+            font->setFontSize(text.fontSize);
+
+            SDL_Color textColor = convertToSDLColor(text.color);
+            SDL_Surface *text_surface = TTF_RenderText_Blended(font->font_, text.text.c_str(), textColor);
+            
+            if (!text_surface) {
+                std::cerr << "Failed to create text_surface: " << SDL_GetError() << '\n';
+                return;
+            }
+
+            SDL_Texture* tempTexture = SDL_CreateTextureFromSurface(renderer_, text_surface);
+            if (!tempTexture) {
+                std::cerr << "Failed to create texture from surface: " << SDL_GetError() << '\n';
+                return;
+            }
+         
+            RendererGuard renderGuard(renderer_);
+
+            SDL_SetRenderTarget(renderer_, texture_);
+
+            dr4::Rect2f textBounds = text.GetBounds();
+            SDL_Rect dstRect = {
+                static_cast<int>(textBounds.pos.x),
+                static_cast<int>(textBounds.pos.y),
+                static_cast<int>(textBounds.size.x),
+                static_cast<int>(textBounds.size.y)
+            };
+    
+            SDL_RenderCopy(renderer_, tempTexture, nullptr, &dstRect);
+
+            SDL_DestroyTexture(tempTexture);
+        } catch (const std::bad_cast& e) {
+            std::cerr << "Bad cast in Draw Text: " << e.what() << '\n';
+        }
+    }
+
+    void Draw(const dr4::Image &img, const dr4::Vec2f &pos) override {
         try {
               const Image &srcImage = dynamic_cast<const Image &>(img);
 
@@ -402,10 +433,7 @@ public:
 
     dr4::Texture *CreateTexture() { return new Texture(renderer_, 100, 100); }
     dr4::Image   *CreateImage() override { return new Image(); }
-    dr4::Font    *CreateFont() override { std::cout << "there should be CreateFont\n"; return nullptr; }
-    
-    // dr4::Rectangle *CreateRectangle() override { std::cout << "there should be CreateRectangle\n"; }
-    // dr4::Text      *CreateText() override { std::cout << "there should be CreateText\n"; }
+    dr4::Font    *CreateFont() override { return new Font(); }
 
     std::optional<dr4::Event> PollEvent() override {
         SDL_Event SDLEvent{};
@@ -480,8 +508,16 @@ public:
     IAGraphicsBackEnd() {
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
             printf("IAGraphicsBackEnd : SDL_Init Error. %s\n", SDL_GetError());
-            // return 1;
+            SDL_Quit();
+            return;
         }
+
+        if (TTF_Init() < 0) {
+            printf("Couldn't initialize TTF: %s\n", TTF_GetError());
+            SDL_Quit();
+            return;
+        }
+
     }
     ~IAGraphicsBackEnd() { SDL_Quit(); }
 

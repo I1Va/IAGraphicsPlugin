@@ -3,6 +3,7 @@
 #include "dr4/keycodes.hpp"
 #include "dr4/math/color.hpp"
 #include "dr4/mousecodes.hpp"
+#include "dr4/texture.hpp"
 
 namespace ia {
 
@@ -177,4 +178,19 @@ dr4::MouseCode convertToDr4MouseButton(const Uint8 SDLButton) {
     }
 }
 
+}
+
+dr4::Rect2f dr4::Text::GetBounds() const { 
+    try {
+        const ia::Font *iaFont = dynamic_cast<const ia::Font *>(font);
+        int textWidth, textHeight;
+
+        TTF_SizeText(iaFont->font_, text.c_str(), &textWidth, &textHeight);
+
+        return dr4::Rect2f(pos.x, pos.y, textWidth, textHeight);
+    } catch (const std::bad_cast& e) {
+        std::cerr << "Bad cast in dr4::Text::GetBounds: " << e.what() << '\n';
+
+        return {};
+    }
 }

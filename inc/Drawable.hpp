@@ -46,14 +46,14 @@ public:
 
     void DrawOn(dr4::Texture& texture) const override {
         try {
-            const Texture &srcTexture = dynamic_cast<const Texture &>(texture);
+            const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
             
             RendererGuard renderGuard(renderer_);
             SDL_SetRenderTarget(renderer_, texture_);
 
-            SDL_Rect dstRect = { pos_.x, pos_.y, srcTexture.GetWidth(), srcTexture.GetHeight() };
+            SDL_Rect dstRect = { dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, dstTexture.GetWidth(), dstTexture.GetHeight() };
 
-            SDL_RenderCopy(renderer_, srcTexture.texture_, nullptr, &dstRect);
+            SDL_RenderCopy(renderer_, dstTexture.texture_, nullptr, &dstRect);
 
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Draw Texture::drawOn: " << e.what() << '\n';
@@ -112,10 +112,10 @@ public:
             SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
 
             thickLineColor(dstTexture.renderer_, 
-                           start_.x + dstTexture.zero_.x, 
-                           start_.y + dstTexture.zero_.y, 
-                           end_.x + dstTexture.zero_.x, 
-                           end_.y + dstTexture.zero_.y, 
+                           dstTexture.zero_.x + start_.x, 
+                           dstTexture.zero_.y + start_.y, 
+                           dstTexture.zero_.x + end_.x, 
+                           dstTexture.zero_.y + end_.y, 
                            thickness_, SDLColorToGfxColor(color_));
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Line::DrawOn: " << e.what() << '\n';
@@ -159,7 +159,7 @@ public:
             std::cerr << "Bordered circles are not supported\n";
 
             filledCircleColor(dstTexture.renderer_, 
-                pos_.x, pos_.y, radius_, SDLColorToGfxColor(fillColor_));         
+                dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, radius_, SDLColorToGfxColor(fillColor_));         
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Circlt::drawOn: " << e.what() << '\n';
         }
@@ -207,14 +207,17 @@ public:
             if (2 * borderThickness_ >= std::fmin(rect_.size.x, rect_.size.y)) {
                 SDL_SetRenderDrawColor(dstTexture.renderer_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a);
                 SDL_Rect innerRect = convertToSDLRect(rect_);
+                innerRect.x += dstTexture.zero_.x;
+                innerRect.y += dstTexture.zero_.y;
+
                 SDL_RenderFillRect(dstTexture.renderer_, &innerRect);
                 return;
             }
 
             SDL_Rect innerRect = SDL_Rect
             (
-                rect_.pos.x + borderThickness_,
-                rect_.pos.y + borderThickness_,
+                dstTexture.zero_.x + rect_.pos.x + borderThickness_,
+                dstTexture.zero_.y + rect_.pos.y + borderThickness_,
                 rect_.size.x - 2 * borderThickness_,
                 rect_.size.y - 2 * borderThickness_
             );
@@ -226,8 +229,8 @@ public:
 
             SDL_Rect top = SDL_Rect
             (
-                rect_.pos.x,
-                rect_.pos.y,
+                dstTexture.zero_.x + rect_.pos.x,
+                dstTexture.zero_.y + rect_.pos.y,
                 rect_.size.x,
                 borderThickness_
             );
@@ -236,8 +239,8 @@ public:
 
             SDL_Rect bottom = SDL_Rect
             (
-                rect_.pos.x,
-                rect_.pos.y + rect_.size.y - borderThickness_,
+                dstTexture.zero_.x + rect_.pos.x,
+                dstTexture.zero_.y + rect_.pos.y + rect_.size.y - borderThickness_,
                 rect_.size.x,
                 borderThickness_
             );
@@ -245,8 +248,8 @@ public:
 
             SDL_Rect left = SDL_Rect
             (
-                rect_.pos.x,
-                rect_.pos.y,
+                dstTexture.zero_.x + rect_.pos.x,
+                dstTexture.zero_.y + rect_.pos.y,
                 borderThickness_,
                 rect_.size.y
             );
@@ -254,8 +257,8 @@ public:
 
             SDL_Rect right = SDL_Rect
             (
-                rect_.pos.x + rect_.size.y - borderThickness_,
-                rect_.pos.y,
+                dstTexture.zero_.x + rect_.pos.x + rect_.size.y - borderThickness_,
+                dstTexture.zero_.y + rect_.pos.y,
                 borderThickness_,
                 rect_.size.y
             );
@@ -399,7 +402,7 @@ public:
             const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
             
             DrawTextDetail(dstTexture.renderer_, font_, text_.c_str(), 
-                            pos_.x, pos_.y, vAlign_, color_);
+                            dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, vAlign_, color_);
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Text::DrawOn: " << e.what() << '\n';
         }
@@ -497,7 +500,7 @@ public:
 
             SDL_Texture* surfTex = SDL_CreateTextureFromSurface(dstTexture.renderer_, surface_);
         
-            SDL_Rect dst = {pos_.x, pos_.y, surface_->w, surface_->h};
+            SDL_Rect dst = {dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, surface_->w, surface_->h};
             SDL_RenderCopy(dstTexture.renderer_, surfTex, nullptr, &dst);
 
             SDL_DestroyTexture(surfTex);

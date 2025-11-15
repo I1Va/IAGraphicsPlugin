@@ -13,8 +13,6 @@
 
 namespace ia {
 
-
-
 class Window : public dr4::Window {
     SDL_Renderer *renderer_ = nullptr;
     SDL_Window *window_ = nullptr;
@@ -62,7 +60,7 @@ public:
     const std::string &GetTitle() const override { return title_; }
     
     dr4::Vec2f GetSize() const override { return size_; };
-    void SetSize(const ::dr4::Vec2f& size) { 
+    void SetSize(dr4::Vec2f size) override { 
         size_ = size; 
         SDL_SetWindowSize(window_, size_.x, size_.y);
     }
@@ -87,7 +85,7 @@ public:
         try {
             const Texture &src = dynamic_cast<const Texture &>(texture);
 
-            SDL_Rect dstRect = SDL_Rect(pos.x, pos.y, src.size_.x, src.size_.y);
+            SDL_Rect dstRect = SDL_Rect(0, 0, src.size_.x, src.size_.y);
             SDL_RenderCopy(renderer_, src.texture_, NULL, &dstRect);
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast: " << e.what() << '\n';
@@ -96,10 +94,18 @@ public:
 
     void Display() override { SDL_RenderPresent(renderer_); }
 
+    double GetTime() override { return static_cast<double>(SDL_GetTicks64()) / 1000; }
 
-    dr4::Texture *CreateTexture() { return new Texture(renderer_, 100, 100); }
-    dr4::Image   *CreateImage() override { return new Image(); }
-    dr4::Font    *CreateFont() override { return new Font(); }
+    Texture   *CreateTexture()   override { return new Texture(renderer_); }
+    Image     *CreateImage()     override { return new Image(); }
+    Font      *CreateFont()      override { return new Font(); }
+    Line      *CreateLine()      override { return new Line(); }
+    Circle    *CreateCircle()    override { return new Circle(); }
+    Rectangle *CreateRectangle() override { return new Rectangle(); }
+    Text      *CreateText()      override { return new Text(); }
+
+    void StartTextInput() override { SDL_StartTextInput(); }
+    virtual void StopTextInput() override { SDL_StopTextInput(); }
 
     std::optional<dr4::Event> PollEvent() override {
         SDL_Event SDLEvent{};
@@ -115,13 +121,13 @@ public:
             case SDL_KEYDOWN:
                 dr4Event.type = dr4::Event::Type::KEY_DOWN;
                 dr4Event.key.sym = convertToDr4KeyCode(SDLEvent.key.keysym.sym);
-                dr4Event.key.mod = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
+                dr4Event.key.mods = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
                 return dr4Event;
 
             case SDL_KEYUP:
                 dr4Event.type = dr4::Event::Type::KEY_UP;
                 dr4Event.key.sym = convertToDr4KeyCode(SDLEvent.key.keysym.sym);
-                dr4Event.key.mod = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
+                dr4Event.key.mods = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
                 return dr4Event;
 
             case SDL_MOUSEWHEEL:
@@ -131,7 +137,8 @@ public:
 
                 dr4Event.type = dr4::Event::Type::MOUSE_WHEEL;
                 dr4Event.mouseWheel.pos = dr4::Vec2f(mouseX, mouseY);
-                dr4Event.mouseWheel.delta = SDLEvent.wheel.y;
+                dr4Event.mouseWheel.deltaY = SDLEvent.wheel.y;
+                dr4Event.mouseWheel.deltaX = SDLEvent.wheel.x;
                 return dr4Event;
             }
 

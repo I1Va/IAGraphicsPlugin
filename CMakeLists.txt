@@ -14,6 +14,7 @@ else()
     add_compile_options(
         -Wall
         -Wextra
+        -Werror
          $<$<BOOL:${SANITIZE}>:-fsanitize=address,undefined>
     )
     add_link_options(

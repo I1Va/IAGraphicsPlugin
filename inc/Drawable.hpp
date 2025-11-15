@@ -23,9 +23,10 @@ class Texture : public dr4::Texture {
     friend class Rectangle;
     friend class Text;
     friend class Image;
+    friend class Window;
 
 public:
-    Texture(SDL_Renderer *renderer, int width=0, int height=0):
+    Texture(SDL_Renderer *renderer, int width=100, int height=100):
         renderer_(renderer), size_(width, height), texture_(nullptr) { 
         assert(renderer);
         if (width > 0 && height > 0) {
@@ -52,7 +53,12 @@ public:
             RendererGuard renderGuard(renderer_);
             SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
 
-            SDL_Rect dstRect = { dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, dstTexture.GetWidth(), dstTexture.GetHeight() };
+            SDL_Rect dstRect = { 
+                static_cast<int>(dstTexture.zero_.x + pos_.x), 
+                static_cast<int>(dstTexture.zero_.y + pos_.y), 
+                static_cast<int>(dstTexture.GetWidth()), 
+                static_cast<int>(dstTexture.GetHeight())
+            };
 
             SDL_RenderCopy(dstTexture.renderer_, dstTexture.texture_, nullptr, &dstRect);
 
@@ -91,7 +97,13 @@ public:
         RendererGuard renderGuard(renderer_);
         SDL_SetRenderTarget(renderer_, texture_);
         SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
-        SDL_Rect full = SDL_Rect{0, 0, size_.x, size_.y};
+        SDL_Rect full = {
+            0, 
+            0, 
+            static_cast<int>(size_.x), 
+            static_cast<int>(size_.y)
+        };
+    
         SDL_RenderFillRect(renderer_, &full);
     }
 };
@@ -125,6 +137,13 @@ public:
             std::cerr << "Bad cast in Line::DrawOn: " << e.what() << '\n';
         }
     }
+
+    void SetPos(dr4::Vec2f pos) override { 
+        dr4::Vec2f delta = end_ - start_;
+        start_ = pos;
+        end_ = pos + delta; 
+    }
+    dr4::Vec2f GetPos() const override { return start_; }
 
     void SetStart(dr4::Vec2f start) override { start_ = start; }
     void SetEnd(dr4::Vec2f end) override { end_ = end; }
@@ -295,7 +314,7 @@ class Font : public dr4::Font {
     std::optional<std::string> lastFileLoadpath{};
     SDL_RWops *lastLoadBufer = nullptr;
 
-    friend Text;
+    friend class Text;
 
 public:
     Font() = default;
@@ -326,21 +345,23 @@ public:
     }
 
     float GetAscent(float fontSize) const override { 
-        if (!font_) {
+        TTF_Font *tmpFont = getFontCopy(fontSize);
+        if (!tmpFont) {
             std::cerr << "font wasn't loaded\n";
             return 0.0;
         }
 
-        return TTF_FontAscent(font_); 
+        return TTF_FontAscent(tmpFont); 
     }
 
     float GetDescent(float fontSize) const override {
-        if (!font_) {
+        TTF_Font *tmpFont = getFontCopy(fontSize);
+        if (!tmpFont) {
             std::cerr << "font wasn't loaded\n";
             return 0.0;
         }
 
-        return TTF_FontDescent(font_);
+        return TTF_FontDescent(tmpFont); 
     }
 
     float getFontSize() const { return fontSize_; }
@@ -377,6 +398,15 @@ private:
             printf("TTF_open font failed: %s\n", TTF_GetError());
             resetFont();
         };
+    }
+
+    TTF_Font *getFontCopy(float fontSize) const {
+       assert(!(lastFileLoadpath.has_value() && (lastLoadBufer != nullptr)));
+
+        if (lastFileLoadpath.has_value())
+            return TTF_OpenFont(lastFileLoadpath.value().c_str(), fontSize);
+        
+        return TTF_OpenFontRW(lastLoadBufer, 0, fontSize);
     }
 };
 
@@ -492,11 +522,8 @@ class Image : public dr4::Image {
     SDL_Surface* surface_{};
 
 public:
-    Image() = delete;
-    Image(const int width=100, const int height=100) {
-        surface_ = createSDLSurface(width, height);
-    }
-
+    Image() { surface_ = createSDLSurface(100, 100); }
+    Image(const int width, const int height) { surface_ = createSDLSurface(width, height); }
     ~Image() override { if (surface_) SDL_FreeSurface(surface_); }
 
     void DrawOn(dr4::Texture &texture) const override {
@@ -509,7 +536,12 @@ public:
 
             SDL_Texture* surfTex = SDL_CreateTextureFromSurface(dstTexture.renderer_, surface_);
         
-            SDL_Rect dst = {dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, surface_->w, surface_->h};
+            SDL_Rect dst = {
+                static_cast<int>(dstTexture.zero_.x + pos_.x), 
+                static_cast<int>(dstTexture.zero_.y + pos_.y),
+                surface_->w, 
+                surface_->h
+            };
             SDL_RenderCopy(dstTexture.renderer_, surfTex, nullptr, &dst);
 
             SDL_DestroyTexture(surfTex);

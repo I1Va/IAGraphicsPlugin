@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
+find_library(SDL2_GFX_LIB SDL2_gfx)
 
 option(SANITIZE "Enable compiler sanitizers" OFF)
 if (MSVC)
@@ -39,5 +40,8 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE SDL2::SDL2 SDL2_image::SDL2_image
     PRIVATE SDL2_ttf::SDL2_ttf
+    PRIVATE ${SDL2_GFX_LIB} 
 )
+
+
                       

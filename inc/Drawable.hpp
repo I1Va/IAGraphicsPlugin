@@ -12,7 +12,6 @@ namespace ia {
 
 class Texture : public dr4::Texture {
     SDL_Renderer *renderer_;
-    dr4::Vec2f size_;
     SDL_Texture* texture_;
 
     dr4::Vec2f pos_;
@@ -27,7 +26,7 @@ class Texture : public dr4::Texture {
 
 public:
     Texture(SDL_Renderer *renderer, int width=100, int height=100):
-        renderer_(renderer), size_(width, height), texture_(nullptr) { 
+        renderer_(renderer), texture_(nullptr) { 
         assert(renderer);
         if (width > 0 && height > 0) {
             texture_ = SDL_CreateTexture(renderer_, 
@@ -50,23 +49,29 @@ public:
             const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
             assert(texture_ && dstTexture.texture_);
     
-            RendererGuard renderGuard(renderer_);
+            RendererGuard renderGuard(dstTexture.renderer_);
             SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
 
+            int textureWidth, textureHeight;
+            SDL_QueryTexture(texture_, NULL, NULL, &textureWidth, &textureHeight);
+            
             SDL_Rect dstRect = { 
                 static_cast<int>(dstTexture.zero_.x + pos_.x), 
                 static_cast<int>(dstTexture.zero_.y + pos_.y), 
-                static_cast<int>(dstTexture.GetWidth()), 
-                static_cast<int>(dstTexture.GetHeight())
+                textureWidth,
+                textureHeight
             };
 
-            SDL_RenderCopy(dstTexture.renderer_, dstTexture.texture_, nullptr, &dstRect);
+            SDL_RenderCopy(dstTexture.renderer_, texture_, nullptr, &dstRect);
 
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast in Draw Texture::drawOn: " << e.what() << '\n';
         }
     }
-    void SetPos(dr4::Vec2f pos) override { pos_ = pos; }
+    void SetPos(dr4::Vec2f pos) override { 
+        std::cout << "texture set pos : " << pos.x << " " << pos.y << "\n";
+        pos_ = pos;
+    }
     dr4::Vec2f GetPos() const override { return pos_; }
 
     void SetSize(dr4::Vec2f size) override { 
@@ -74,37 +79,33 @@ public:
             SDL_DestroyTexture(texture_);
             texture_ = nullptr;
         }
-        size_ = size;
-        if (size_.x > 0 && size_.y > 0) {
-            texture_ = SDL_CreateTexture(renderer_, 
-                                    SDL_PIXELFORMAT_RGBA8888,
-                                    SDL_TEXTUREACCESS_TARGET,
-                                    size_.x, size_.y);
-            SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
-            SDL_SetTextureAlphaMod(texture_, 255);
-        }
+    
+        texture_ = SDL_CreateTexture(renderer_, 
+                                     SDL_PIXELFORMAT_RGBA8888,
+                                     SDL_TEXTUREACCESS_TARGET,
+                                     size.x, size.y);
+        SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureAlphaMod(texture_, 255);
     }
 
-    dr4::Vec2f GetSize() const override { return size_; }
+    dr4::Vec2f GetSize() const override { 
+        int textureWidth, textureHeight;
+        SDL_QueryTexture(texture_, NULL, NULL, &textureWidth, &textureHeight);
+        return dr4::Vec2f(textureWidth, textureHeight); 
+    }
     
-    float GetWidth() const override { return size_.x; }
-    float GetHeight() const override { return size_.y; }
+    float GetWidth() const override { return GetSize().x; }
+    float GetHeight() const override { return GetSize().y; }
 
     void SetZero(dr4::Vec2f pos) override { zero_ = pos; }
     dr4::Vec2f GetZero() const override { return zero_; }
 
     void Clear(dr4::Color color) override {
         RendererGuard renderGuard(renderer_);
+        
         SDL_SetRenderTarget(renderer_, texture_);
         SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
-        SDL_Rect full = {
-            0, 
-            0, 
-            static_cast<int>(size_.x), 
-            static_cast<int>(size_.y)
-        };
-    
-        SDL_RenderFillRect(renderer_, &full);
+        SDL_RenderClear(renderer_);
     }
 };
 
@@ -174,17 +175,42 @@ public:
 
     void DrawOn(dr4::Texture &texture) const override {
         try {
-            const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
-            
-            RendererGuard renderGuard(dstTexture.renderer_);
-            SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
+        const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
+    
+        RendererGuard renderGuard(dstTexture.renderer_);
+        SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
 
-            std::cerr << "Bordered circles are not supported\n";
+        if (borderThickness_ <= 0) {
+            filledCircleRGBA(dstTexture.renderer_, 
+                dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, 
+                radius_, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a);
+            return;
+        }
 
-            filledCircleColor(dstTexture.renderer_, 
-                dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, radius_, SDLColorToGfxColor(fillColor_));         
+        float innerRadius = radius_ - borderThickness_;
+        if (innerRadius <= 0) {
+            filledCircleRGBA(dstTexture.renderer_, 
+                dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, 
+                radius_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a);
+            return;
+        }
+
+        SDL_SetRenderDrawBlendMode(dstTexture.renderer_, SDL_BLENDMODE_BLEND);
+
+        filledCircleRGBA(dstTexture.renderer_, 
+            dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, 
+            radius_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a);
+
+        SDL_SetRenderDrawBlendMode(dstTexture.renderer_, SDL_BLENDMODE_NONE);
+
+        filledCircleRGBA(dstTexture.renderer_, 
+            dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, 
+            innerRadius, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a);
+
+        SDL_SetRenderDrawBlendMode(dstTexture.renderer_, SDL_BLENDMODE_BLEND);
+
         } catch (const std::bad_cast& e) {
-            std::cerr << "Bad cast in Circle::drawOn: " << e.what() << '\n';
+            std::cerr << "Bad cast in Circle::DrawOn: " << e.what() << '\n';
         }
     }
 
@@ -272,18 +298,18 @@ public:
             SDL_Rect left = SDL_Rect
             (
                 dstTexture.zero_.x + rect_.pos.x,
-                dstTexture.zero_.y + rect_.pos.y,
+                dstTexture.zero_.y + rect_.pos.y + borderThickness_,
                 borderThickness_,
-                rect_.size.y
+                rect_.size.y - 2 * borderThickness_
             );
             SDL_RenderFillRect(dstTexture.renderer_, &left);
 
             SDL_Rect right = SDL_Rect
             (
                 dstTexture.zero_.x + rect_.pos.x + rect_.size.x - borderThickness_,
-                dstTexture.zero_.y + rect_.pos.y,
+                dstTexture.zero_.y + rect_.pos.y + borderThickness_,
                 borderThickness_,
-                rect_.size.y
+                rect_.size.y - 2 * borderThickness_
             );
         
             SDL_RenderFillRect(dstTexture.renderer_, &right);

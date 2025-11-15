@@ -49,6 +49,8 @@ public:
             SDL_Quit();
             // return 1;
         }
+
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     }
 
     ~Window() override {
@@ -76,17 +78,19 @@ public:
     }
 
     void Clear(dr4::Color color) override {
+        RendererGuard renderGuard(renderer_);
         SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
-        SDL_Rect full = {0, 0, static_cast<int>(size_.x), static_cast<int>(size_.y)};
-        SDL_RenderFillRect(renderer_, &full);
+        SDL_RenderClear(renderer_);
     };
 
-    void Draw(const dr4::Texture &texture) override {
+    void Draw([[maybe_unused]] const dr4::Texture &texture) override {        
         try {
             const Texture &src = dynamic_cast<const Texture &>(texture);
-
-            SDL_Rect dstRect = SDL_Rect(0, 0, src.size_.x, src.size_.y);
-            SDL_RenderCopy(renderer_, src.texture_, NULL, &dstRect);
+            RendererGuard rendererGuard(renderer_);
+            
+            SDL_Rect dstRect = SDL_Rect(src.GetPos().x, src.GetPos().y, src.GetWidth(), src.GetHeight());
+            
+            SDL_RenderCopy(renderer_, src.texture_, nullptr, &dstRect);
         } catch (const std::bad_cast& e) {
             std::cerr << "Bad cast: " << e.what() << '\n';
         }
@@ -105,7 +109,7 @@ public:
     Text      *CreateText()      override { return new Text(); }
 
     void StartTextInput() override { SDL_StartTextInput(); }
-    virtual void StopTextInput() override { SDL_StopTextInput(); }
+    void StopTextInput() override { SDL_StopTextInput(); }
 
     std::optional<dr4::Event> PollEvent() override {
         SDL_Event SDLEvent{};
@@ -116,6 +120,7 @@ public:
         switch (SDLEvent.type) {
             case SDL_QUIT:
                 dr4Event.type = dr4::Event::Type::QUIT;
+                
                 return dr4Event;
 
             case SDL_KEYDOWN:

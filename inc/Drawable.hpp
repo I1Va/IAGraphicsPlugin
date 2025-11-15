@@ -630,7 +630,6 @@ private:
         if (!result) {
             SDL_Log("Failed to create surface: %s", SDL_GetError());
         }
-
         return result;
     }
 };

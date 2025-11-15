@@ -1,18 +1,6 @@
-#include <SDL2/SDL.h>
-#include "Graphics.hpp"
-#include "dr4/keycodes.hpp"
-#include "dr4/math/color.hpp"
-#include "dr4/mousecodes.hpp"
-#include "dr4/texture.hpp"
+#include "Common.hpp"
 
 namespace ia {
-
-extern "C" {
-    dr4::DR4Backend* CreateDR4Backend() {
-        ia::IAGraphicsBackEnd* backend = new ia::IAGraphicsBackEnd();
-        return backend;
-    }
-}
 
 SDL_Color convertToSDLColor(const dr4::Color &color) {
     return SDL_Color
@@ -21,6 +9,16 @@ SDL_Color convertToSDLColor(const dr4::Color &color) {
         color.g,
         color.b,
         color.a
+    );
+}
+
+dr4::Color convertToDr4Color(const SDL_Color color) { 
+    return dr4::Color
+    (
+        color.r,
+        color.g,
+        color.b,
+        color.a  
     );
 }
 
@@ -169,28 +167,28 @@ dr4::KeyCode convertToDr4KeyCode(const SDL_Keycode SDLKeySym) {
     }
 }
 
-dr4::MouseCode convertToDr4MouseButton(const Uint8 SDLButton) {
+dr4::MouseButtonType convertToDr4MouseButton(const Uint8 SDLButton) {
     switch (SDLButton) {
-        case SDL_BUTTON_LEFT:   return dr4::MouseCode::MOUSECODE_LEFT;
-        case SDL_BUTTON_MIDDLE: return dr4::MouseCode::MOUSECODE_MIDDLE;
-        case SDL_BUTTON_RIGHT:  return dr4::MouseCode::MOUSECODE_RIGHT;
-        default:                return dr4::MouseCode::MOUSECODE_UNKNOWN;
+        case SDL_BUTTON_LEFT:   return dr4::MouseButtonType::LEFT;
+        case SDL_BUTTON_MIDDLE: return dr4::MouseButtonType::MIDDLE;
+        case SDL_BUTTON_RIGHT:  return dr4::MouseButtonType::RIGHT;
+        default:                return dr4::MouseButtonType::UNKNOWN;
     }
 }
 
 }
 
-dr4::Rect2f dr4::Text::GetBounds() const { 
-    try {
-        const ia::Font *iaFont = dynamic_cast<const ia::Font *>(font);
-        int textWidth, textHeight;
+// dr4::Rect2f dr4::Text::GetBounds() const { 
+//     try {
+//         const ia::Font *iaFont = dynamic_cast<const ia::Font *>(font);
+//         int textWidth, textHeight;
 
-        TTF_SizeText(iaFont->font_, text.c_str(), &textWidth, &textHeight);
+//         TTF_SizeText(iaFont->font_, text.c_str(), &textWidth, &textHeight);
 
-        return dr4::Rect2f(pos.x, pos.y, textWidth, textHeight);
-    } catch (const std::bad_cast& e) {
-        std::cerr << "Bad cast in dr4::Text::GetBounds: " << e.what() << '\n';
+//         return dr4::Rect2f(pos.x, pos.y, textWidth, textHeight);
+//     } catch (const std::bad_cast& e) {
+//         std::cerr << "Bad cast in dr4::Text::GetBounds: " << e.what() << '\n';
 
-        return {};
-    }
-}
+//         return {};
+//     }
+// }

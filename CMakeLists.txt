@@ -24,7 +24,8 @@ endif()
 #add_subdirectory(external/gui-interface)
 
 add_library(${PROJECT_NAME} SHARED
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Graphics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Common.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Plugin.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)

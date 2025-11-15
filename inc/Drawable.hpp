@@ -22,6 +22,7 @@ class Texture : public dr4::Texture {
     friend Circle;
     friend Rectangle;
     friend Text;
+    friend Image;
 
 public:
     Texture(SDL_Renderer *renderer, int width=0, int height=0):
@@ -465,6 +466,103 @@ private:
 
         SDL_DestroyTexture(tex);
         SDL_FreeSurface(surf);
+    }
+};
+
+class Image : public dr4::Image {
+    static constexpr int BIT_PER_PIXEL = 32;
+    static constexpr int R_MASK = 0x00FF0000;
+    static constexpr int G_MASK = 0x0000FF00;
+    static constexpr int B_MASK = 0x000000FF;
+    static constexpr int A_MASK = 0xFF000000;
+
+    dr4::Vec2f pos_{};
+    SDL_Surface* surface_{};
+
+public:
+    Image() = delete;
+    Image(const int width=100, const int height=100) {
+        surface_ = createSDLSurface(width, height);
+    }
+
+    ~Image() override { if (surface_) SDL_FreeSurface(surface_); }
+
+    void DrawOn(dr4::Texture &texture) const override {
+        try {
+            const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
+            
+            RendererGuard renderGuard(dstTexture.renderer_);
+            SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
+
+
+            SDL_Texture* surfTex = SDL_CreateTextureFromSurface(dstTexture.renderer_, surface_);
+        
+            SDL_Rect dst = {pos_.x, pos_.y, surface_->w, surface_->h};
+            SDL_RenderCopy(dstTexture.renderer_, surfTex, nullptr, &dst);
+
+            SDL_DestroyTexture(surfTex);
+        } catch (const std::bad_cast& e) {
+            std::cerr << "Bad cast in Circlt::drawOn: " << e.what() << '\n';
+        }
+    }
+
+    void SetPos(dr4::Vec2f pos) override { pos_ = pos; }
+    dr4::Vec2f GetPos() const override { return pos_; };
+
+    void SetPixel(size_t x, size_t y, dr4::Color color) override {
+        assert(surface_->format->BytesPerPixel == 4);
+        assert(sizeof(dr4::Color) == 4);
+
+        Uint8* pixel_ptr = (Uint8*)surface_->pixels
+                            + y * surface_->pitch
+                            + x * (surface_->format->BytesPerPixel);
+
+        *(dr4::Color*)pixel_ptr = color;
+    }
+
+    dr4::Color GetPixel(size_t x, size_t y) const override {
+        assert(surface_->format->BytesPerPixel == 4);
+        assert(sizeof(dr4::Color) == 4);
+
+        Uint8* pixel_ptr = (Uint8*)surface_->pixels
+                            + y * surface_->pitch
+                            + x * (surface_->format->BytesPerPixel);
+
+        return *(dr4::Color*)pixel_ptr;
+    }
+
+   void SetSize(dr4::Vec2f size) override {
+        assert(surface_);
+        SDL_Surface* newSurface = createSDLSurface(size.x, size.y);
+        if (newSurface) {
+            SDL_FreeSurface(surface_);
+            surface_ = newSurface;
+        } else {
+            SDL_Log("Failed to resize surface");
+        }
+    }
+
+    dr4::Vec2f GetSize() const override { return dr4::Vec2f(surface_->w, surface_->h); }
+    float GetWidth() const override { return surface_->w; }
+    float GetHeight() const override { return surface_->h; }
+
+private:
+    SDL_Surface *createSDLSurface(const int width, const int height) {
+        SDL_Surface *result = SDL_CreateRGBSurface(
+            0,              // flags (0 for no special flags)
+            width, height,  // width, height
+            BIT_PER_PIXEL,  // bits per pixel
+            R_MASK,         // R mask
+            G_MASK,         // G mask
+            B_MASK,         // B mask
+            A_MASK          // A mask
+        );
+
+        if (!result) {
+            SDL_Log("Failed to create surface: %s", SDL_GetError());
+        }
+
+        return result;
     }
 };
 

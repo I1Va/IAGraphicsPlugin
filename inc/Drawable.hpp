@@ -21,6 +21,7 @@ class Texture : public dr4::Texture {
     friend Line;
     friend Circle;
     friend Rectangle;
+    friend Text;
 
 public:
     Texture(SDL_Renderer *renderer, int width=0, int height=0):
@@ -49,17 +50,12 @@ public:
             RendererGuard renderGuard(renderer_);
             SDL_SetRenderTarget(renderer_, texture_);
 
-            SDL_Rect dstRect = {
-                static_cast<int>(pos_.x),
-                static_cast<int>(pos_.y),
-                static_cast<int>(srcTexture.GetWidth()),
-                static_cast<int>(srcTexture.GetHeight())
-            };
+            SDL_Rect dstRect = { pos_.x, pos_.y, srcTexture.GetWidth(), srcTexture.GetHeight() };
 
             SDL_RenderCopy(renderer_, srcTexture.texture_, nullptr, &dstRect);
 
         } catch (const std::bad_cast& e) {
-            std::cerr << "Bad cast in Draw Texture: " << e.what() << '\n';
+            std::cerr << "Bad cast in Draw Texture::drawOn: " << e.what() << '\n';
         }
     }
     void SetPos(dr4::Vec2f pos) override { pos_ = pos; }
@@ -90,7 +86,7 @@ public:
         RendererGuard renderGuard(renderer_);
         SDL_SetRenderTarget(renderer_, texture_);
         SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
-        SDL_Rect full = SDL_Rect{0, 0, static_cast<int>(size_.x), static_cast<int>(size_.y)};
+        SDL_Rect full = SDL_Rect{0, 0, size_.x, size_.y};
         SDL_RenderFillRect(renderer_, &full);
     }
 };
@@ -115,13 +111,13 @@ public:
             SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
 
             thickLineColor(dstTexture.renderer_, 
-                           static_cast<Sint16>(start_.x + dstTexture.zero_.x), 
-                           static_cast<Sint16>(start_.y + dstTexture.zero_.y), 
-                           static_cast<Sint16>(end_.x + dstTexture.zero_.x), 
-                           static_cast<Sint16>(end_.y + dstTexture.zero_.y), 
-                           static_cast<Uint8>(thickness_), SDLColorToGfxColor(color_));
+                           start_.x + dstTexture.zero_.x, 
+                           start_.y + dstTexture.zero_.y, 
+                           end_.x + dstTexture.zero_.x, 
+                           end_.y + dstTexture.zero_.y, 
+                           thickness_, SDLColorToGfxColor(color_));
         } catch (const std::bad_cast& e) {
-            std::cerr << "Bad cast in Draw Texture: " << e.what() << '\n';
+            std::cerr << "Bad cast in Line::DrawOn: " << e.what() << '\n';
         }
     }
 
@@ -162,10 +158,9 @@ public:
             std::cerr << "Bordered circles are not supported\n";
 
             filledCircleColor(dstTexture.renderer_, 
-                static_cast<Sint16>(pos_.x), static_cast<Sint16>(pos_.y), 
-                static_cast<Sint16>(radius_), SDLColorToGfxColor(fillColor_));         
+                pos_.x, pos_.y, radius_, SDLColorToGfxColor(fillColor_));         
         } catch (const std::bad_cast& e) {
-            std::cerr << "Bad cast in Draw Texture: " << e.what() << '\n';
+            std::cerr << "Bad cast in Circlt::drawOn: " << e.what() << '\n';
         }
     }
 
@@ -217,10 +212,10 @@ public:
 
             SDL_Rect innerRect = SDL_Rect
             (
-                static_cast<int>(rect_.pos.x + borderThickness_),
-                static_cast<int>(rect_.pos.y + borderThickness_),
-                static_cast<int>(rect_.size.x - 2 * borderThickness_),
-                static_cast<int>(rect_.size.y - 2 * borderThickness_)
+                rect_.pos.x + borderThickness_,
+                rect_.pos.y + borderThickness_,
+                rect_.size.x - 2 * borderThickness_,
+                rect_.size.y - 2 * borderThickness_
             );
 
             SDL_SetRenderDrawColor(dstTexture.renderer_, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a);
@@ -230,42 +225,43 @@ public:
 
             SDL_Rect top = SDL_Rect
             (
-                static_cast<int>(rect_.pos.x),
-                static_cast<int>(rect_.pos.y),
-                static_cast<int>(rect_.size.x),
-                static_cast<int>(borderThickness_)
+                rect_.pos.x,
+                rect_.pos.y,
+                rect_.size.x,
+                borderThickness_
             );
             SDL_RenderFillRect(dstTexture.renderer_, &top);
 
 
             SDL_Rect bottom = SDL_Rect
             (
-                static_cast<int>(rect_.pos.x),
-                static_cast<int>(rect_.pos.y + rect_.size.y - borderThickness_),
-                static_cast<int>(rect_.size.x),
-                static_cast<int>(borderThickness_)
+                rect_.pos.x,
+                rect_.pos.y + rect_.size.y - borderThickness_,
+                rect_.size.x,
+                borderThickness_
             );
             SDL_RenderFillRect(dstTexture.renderer_, &bottom);
 
             SDL_Rect left = SDL_Rect
             (
-                static_cast<int>(rect_.pos.x),
-                static_cast<int>(rect_.pos.y),
-                static_cast<int>(borderThickness_),
-                static_cast<int>(rect_.size.y)
+                rect_.pos.x,
+                rect_.pos.y,
+                borderThickness_,
+                rect_.size.y
             );
             SDL_RenderFillRect(dstTexture.renderer_, &left);
 
             SDL_Rect right = SDL_Rect
             (
-                static_cast<int>(rect_.pos.x + rect_.size.y - borderThickness_),
-                static_cast<int>(rect_.pos.y),
-                static_cast<int>(borderThickness_),
-                static_cast<int>(rect_.size.y)
+                rect_.pos.x + rect_.size.y - borderThickness_,
+                rect_.pos.y,
+                borderThickness_,
+                rect_.size.y
             );
+        
             SDL_RenderFillRect(dstTexture.renderer_, &right);
         } catch (const std::bad_cast& e) {
-            std::cerr << "Bad cast in Draw Texture: " << e.what() << '\n';
+            std::cerr << "Bad cast in Rectangle::DrawOn: " << e.what() << '\n';
         }
     }
 
@@ -288,26 +284,188 @@ class Font : public dr4::Font {
     TTF_Font *font_ = nullptr;
     int fontSize_ = DEFAULT_FONT_SIZE;
 
+    std::optional<std::string> lastFileLoadpath{};
+    SDL_RWops *lastLoadBufer = nullptr;
+
+    friend Text;
+
 public:
     Font() = default;
-    ~Font() override { TTF_CloseFont(font_); };
+    ~Font() override { 
+        TTF_CloseFont(font_); 
+        if (lastLoadBufer) delete lastLoadBufer; 
+    };
 
     void LoadFromFile(const std::string& path) override {
-        if (font_) TTF_CloseFont(font_);
-        font_ = TTF_OpenFont(path.c_str(), fontSize_);
-        if (!font_) {
-            printf("TTF_open font failed: %s\n", TTF_GetError());
-        }
+        resetFont();
+        lastFileLoadpath = path; 
+
+        font_ = TTF_OpenFont(lastFileLoadpath.value().c_str(), fontSize_);
+        if (!font_) printf("TTF_open font failed: %s\n", TTF_GetError());
     }
 
     void LoadFromBuffer(const void *buffer, size_t size) override {
-        SDL_RWops *rw = SDL_RWFromConstMem(buffer, size);
-        font_ = TTF_OpenFontRW(rw, 1, fontSize_); // frees SDL_RWops rw automatically
+        assert(buffer);
+    
+        resetFont();
+        lastLoadBufer = SDL_RWFromConstMem(buffer, size);
+    
+        font_ = TTF_OpenFontRW(lastLoadBufer, 0, fontSize_);
+        if (!font_) printf("TTF_open font failed: %s\n", TTF_GetError());
     }
 
-    float GetAscent(float fontSize) const override { return TTF_FontAscent(font_); }
-    float GetDescent(float fontSize) const override { return TTF_FontDescent(font_); }
+    float GetAscent(float fontSize) const override { 
+        if (!font_) {
+            std::cerr << "font wasn't loaded\n";
+            return 0.0;
+        }
+
+        return TTF_FontAscent(font_); 
+    }
+
+    float GetDescent(float fontSize) const override {
+        if (!font_) {
+            std::cerr << "font wasn't loaded\n";
+            return 0.0;
+        }
+    }
+
+    float getFontSize() const { return fontSize_; }
+    void setFontSize(float fontSize) {
+        assert(!(lastFileLoadpath.has_value() && (lastLoadBufer != nullptr)));
+
+        if (static_cast<int> (fontSize) == fontSize_) return;
+        fontSize_ = static_cast<int> (fontSize);
+
+        if (lastFileLoadpath.has_value())
+            LoadFromFile(lastFileLoadpath.value());
+        else loadFromRWBUffer(lastLoadBufer);
+    }
+
+private:
+    void resetFont() {
+            if (font_) TTF_CloseFont(font_);
+            if (lastLoadBufer) {
+                delete lastLoadBufer;
+                lastLoadBufer = nullptr;
+            }
+            lastFileLoadpath.reset();
+        }
+
+    void loadFromRWBUffer(SDL_RWops *bufer) {
+        assert(bufer);
+    
+        resetFont();
+        font_ = TTF_OpenFontRW(lastLoadBufer, 0, fontSize_);
+        if (!font_) printf("TTF_open font failed: %s\n", TTF_GetError());
+    }
 };
 
+struct FontGuard {
+    Font *font_;
+    float savedFontSize_;
+
+    FontGuard(Font *font): font_(font), savedFontSize_(font->getFontSize()) {}
+    ~FontGuard() { font_->setFontSize(savedFontSize_); }
+};
+
+class Text : public dr4::Text {
+    constexpr static float DEFAULT_FONT_SIZE = 24;
+
+    Font *font_ = nullptr;
+    float fontSize_ = DEFAULT_FONT_SIZE;
+    SDL_Color color_ = SDL_Color(0, 0, 0, 255);
+
+    std::string text_ = "Text";
+    dr4::Text::VAlign vAlign_ = dr4::Text::VAlign::TOP;
+    dr4::Vec2f pos_{};
+
+public:
+    Text() = default;
+    ~Text() override = default;
+
+    void DrawOn(dr4::Texture& texture) const override {
+        try {
+            if (font_ == nullptr) {
+                std::cerr << "font wasn't set\n";
+                return; 
+            }
+            if (font_->font_ == nullptr) {
+                std::cerr << "text font wasn't loaded\n";
+                return;
+            }
+
+            const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
+            
+            DrawTextDetail(dstTexture.renderer_, font_, text_.c_str(), 
+                            pos_.x, pos_.y, vAlign_, color_);
+        } catch (const std::bad_cast& e) {
+            std::cerr << "Bad cast in Text::DrawOn: " << e.what() << '\n';
+        }
+    };
+
+    void SetPos(dr4::Vec2f pos) override { pos_ = pos; }
+    dr4::Vec2f GetPos() const override { return pos_; };
+
+    void SetText(const std::string &text) override { text_ = text; }
+    void SetColor(dr4::Color color) override { color_ = convertToSDLColor(color); }
+    void SetFontSize(float size) override { fontSize_ = size; }
+    void SetVAlign(VAlign align) override { vAlign_ = align; }
+    void SetFont(const dr4::Font *font) override { 
+        try {
+            font_ = const_cast<Font *>(dynamic_cast<const Font*>(font));
+        } catch (const std::bad_cast& e) {
+            std::cerr << "Bad cast in Text::SetFont: " << e.what() << '\n';
+        }
+    }
+
+    dr4::Vec2f         GetBounds() const override { 
+        FontGuard fontGuard(font_);
+
+        font_->setFontSize(fontSize_);
+        int textWidth, textHeight;
+        TTF_SizeUTF8(font_->font_, text_.c_str(), &textWidth, &textHeight);
+
+        return dr4::Vec2f(static_cast<float>(textWidth), static_cast<float>(textHeight));
+    }
+
+    const std::string &GetText() const override { return text_; }
+    dr4::Color         GetColor() const override { return convertToDr4Color(color_); }
+    float              GetFontSize() const override { return fontSize_; }
+    VAlign             GetVAlign() const override { return vAlign_; }
+    const Font        &GetFont() const override { return *font_; }
+
+private:
+
+    void DrawTextDetail(SDL_Renderer* renderer, Font* font, const char* text,
+                        int x, int y, VAlign valign, SDL_Color color) const
+    {
+        RendererGuard renderGuard(renderer);
+        FontGuard fontGuard(font);
+
+        font->setFontSize(fontSize_);
+    
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font->font_, text, color);
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+
+        int w, h;
+        SDL_QueryTexture(tex, NULL, NULL, &w, &h);
+
+        SDL_Rect dst = { x, y, w, h };
+
+        switch (valign) {
+            case VAlign::TOP:        break;
+            case VAlign::MIDDLE:     dst.y -= h / 2; break;
+            case VAlign::BASELINE:   dst.y -= TTF_FontAscent(font->font_); break;
+            case VAlign::BOTTOM:     dst.y -= h; break;
+            default: break;
+        }
+
+        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+
+        SDL_DestroyTexture(tex);
+        SDL_FreeSurface(surf);
+    }
+};
 
 }

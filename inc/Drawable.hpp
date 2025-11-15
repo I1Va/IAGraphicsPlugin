@@ -283,4 +283,31 @@ public:
     dr4::Color GetBorderColor() const override { return convertToDr4Color(borderColor_); }
 };
 
+class Font : public dr4::Font {
+    constexpr static int DEFAULT_FONT_SIZE = 24;
+    TTF_Font *font_ = nullptr;
+    int fontSize_ = DEFAULT_FONT_SIZE;
+
+public:
+    Font() = default;
+    ~Font() override { TTF_CloseFont(font_); };
+
+    void LoadFromFile(const std::string& path) override {
+        if (font_) TTF_CloseFont(font_);
+        font_ = TTF_OpenFont(path.c_str(), fontSize_);
+        if (!font_) {
+            printf("TTF_open font failed: %s\n", TTF_GetError());
+        }
+    }
+
+    void LoadFromBuffer(const void *buffer, size_t size) override {
+        SDL_RWops *rw = SDL_RWFromConstMem(buffer, size);
+        font_ = TTF_OpenFontRW(rw, 1, fontSize_); // frees SDL_RWops rw automatically
+    }
+
+    float GetAscent(float fontSize) const override { return TTF_FontAscent(font_); }
+    float GetDescent(float fontSize) const override { return TTF_FontDescent(font_); }
+};
+
+
 }

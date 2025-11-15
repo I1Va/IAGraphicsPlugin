@@ -5,6 +5,7 @@
 #include <SDL2/SDL2_gfxPrimitives.h>
 
 #include "dr4/texture.hpp"
+#include "dr4/math/rect.hpp"
 #include "Common.hpp"
 
 namespace ia {
@@ -19,7 +20,7 @@ class Texture : public dr4::Texture {
 
     friend Line;
     friend Circle;
-
+    friend Rectangle;
 
 public:
     Texture(SDL_Renderer *renderer, int width=0, int height=0):
@@ -94,8 +95,7 @@ public:
     }
 };
 
-
-class Line : dr4::Line {
+class Line : public dr4::Line {
     dr4::Vec2f start_;
     dr4::Vec2f end_;
     float thickness_;
@@ -136,7 +136,7 @@ public:
     float GetThickness() const override { return thickness_; }
 };
 
-class Circle : dr4::Circle {
+class Circle : public dr4::Circle {
     dr4::Vec2f pos_;
     float radius_;
     float borderThickness_;
@@ -184,6 +184,103 @@ public:
     dr4::Color GetFillColor() const override { return convertToDr4Color(fillColor_); }
     dr4::Color GetBorderColor() const override { return convertToDr4Color(borderColor_); };
     float GetBorderThickness() const override { return borderThickness_; }
+};
+
+class Rectangle : public dr4::Rectangle {
+    dr4::Rect2f rect_;
+
+    float borderThickness_;
+    SDL_Color fillColor_;
+    SDL_Color borderColor_;
+
+public:
+    Rectangle() = default;
+    Rectangle(dr4::Vec2f pos, dr4::Vec2f size, float borderThickness,
+              SDL_Color fillColor, SDL_Color borderColor):
+        rect_(pos, size), borderThickness_(borderThickness), 
+        fillColor_(fillColor), borderColor_(borderColor) {}
+    ~Rectangle() override = default;
+
+    void DrawOn(dr4::Texture& texture) const override {
+        try {
+            const Texture &dstTexture = dynamic_cast<const Texture &>(texture);
+            
+            RendererGuard renderGuard(dstTexture.renderer_);
+            SDL_SetRenderTarget(dstTexture.renderer_, dstTexture.texture_);
+
+            if (2 * borderThickness_ >= std::fmin(rect_.size.x, rect_.size.y)) {
+                SDL_SetRenderDrawColor(dstTexture.renderer_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a);
+                SDL_Rect innerRect = convertToSDLRect(rect_);
+                SDL_RenderFillRect(dstTexture.renderer_, &innerRect);
+                return;
+            }
+
+            SDL_Rect innerRect = SDL_Rect
+            (
+                static_cast<int>(rect_.pos.x + borderThickness_),
+                static_cast<int>(rect_.pos.y + borderThickness_),
+                static_cast<int>(rect_.size.x - 2 * borderThickness_),
+                static_cast<int>(rect_.size.y - 2 * borderThickness_)
+            );
+
+            SDL_SetRenderDrawColor(dstTexture.renderer_, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a);
+            SDL_RenderFillRect(dstTexture.renderer_, &innerRect);
+    
+            SDL_SetRenderDrawColor(dstTexture.renderer_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a);
+
+            SDL_Rect top = SDL_Rect
+            (
+                static_cast<int>(rect_.pos.x),
+                static_cast<int>(rect_.pos.y),
+                static_cast<int>(rect_.size.x),
+                static_cast<int>(borderThickness_)
+            );
+            SDL_RenderFillRect(dstTexture.renderer_, &top);
+
+
+            SDL_Rect bottom = SDL_Rect
+            (
+                static_cast<int>(rect_.pos.x),
+                static_cast<int>(rect_.pos.y + rect_.size.y - borderThickness_),
+                static_cast<int>(rect_.size.x),
+                static_cast<int>(borderThickness_)
+            );
+            SDL_RenderFillRect(dstTexture.renderer_, &bottom);
+
+            SDL_Rect left = SDL_Rect
+            (
+                static_cast<int>(rect_.pos.x),
+                static_cast<int>(rect_.pos.y),
+                static_cast<int>(borderThickness_),
+                static_cast<int>(rect_.size.y)
+            );
+            SDL_RenderFillRect(dstTexture.renderer_, &left);
+
+            SDL_Rect right = SDL_Rect
+            (
+                static_cast<int>(rect_.pos.x + rect_.size.y - borderThickness_),
+                static_cast<int>(rect_.pos.y),
+                static_cast<int>(borderThickness_),
+                static_cast<int>(rect_.size.y)
+            );
+            SDL_RenderFillRect(dstTexture.renderer_, &right);
+        } catch (const std::bad_cast& e) {
+            std::cerr << "Bad cast in Draw Texture: " << e.what() << '\n';
+        }
+    }
+
+    void SetPos(dr4::Vec2f pos) override { rect_.pos = pos; }
+    dr4::Vec2f GetPos() const override { return rect_.pos; }
+
+    void SetSize(dr4::Vec2f size) override { rect_.size = size; }
+    void SetFillColor(dr4::Color color) override { fillColor_ = convertToSDLColor(color); }
+    void SetBorderThickness(float thickness) override { borderThickness_ = thickness; }
+    void SetBorderColor(dr4::Color color) override { borderColor_ = convertToSDLColor(color);}
+
+    dr4::Vec2f GetSize() const override { return rect_.size; }
+    dr4::Color GetFillColor() const override { return convertToDr4Color(fillColor_); }
+    float GetBorderThickness() const override { return borderThickness_; }
+    dr4::Color GetBorderColor() const override { return convertToDr4Color(borderColor_); }
 };
 
 }

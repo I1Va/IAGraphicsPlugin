@@ -22,6 +22,17 @@ dr4::Color convertToDr4Color(const SDL_Color color) {
     );
 }
 
+
+SDL_Rect convertToSDLRect(const dr4::Rect2f &rect) {
+    return SDL_Rect
+    (
+        static_cast<int> (rect.pos.x),
+        static_cast<int> (rect.pos.y),
+        static_cast<int> (rect.size.x),
+        static_cast<int> (rect.size.y)
+    );
+}
+
 dr4::KeyMode convertToDr4KeyMode(const Uint16 SDLKeyMod) {
     uint32_t mode = dr4::KEYMOD_NONE;
 

@@ -399,7 +399,6 @@ private:
             SDL_RWclose(lastLoadBufer);
             lastLoadBufer = nullptr;
         }
-        lastFileLoadpath.reset();
     }
 
     void loadFromRWBUffer(SDL_RWops *bufer) {

@@ -6,6 +6,7 @@
 #include "dr4/window.hpp"
 #include "dr4/texture.hpp"
 
+#include "IAError.hpp"
 #include "Window.hpp"
 #include "Drawable.hpp"
 
@@ -17,18 +18,17 @@ class IAGraphicsBackEnd : public dr4::DR4Backend {
 public:
     IAGraphicsBackEnd() {
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-            printf("IAGraphicsBackEnd : SDL_Init Error. %s\n", SDL_GetError());
             SDL_Quit();
-            return;
+            throw SDLException("IAGraphicsBackEnd : SDL_Init Error. %s\n" + std::string(SDL_GetError()));
         }
 
         if (TTF_Init() < 0) {
-            printf("Couldn't initialize TTF: %s\n", TTF_GetError());
             SDL_Quit();
+            throw TTFException("IAGraphicsBackEnd : TTF_Init Error. %s\n" + std::string(TTF_GetError()));
             return;
         }
-
     }
+
     ~IAGraphicsBackEnd() { SDL_Quit(); }
 
     const std::string &Name() const { return name_; }

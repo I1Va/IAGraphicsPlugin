@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(AIPlugin LANGUAGES CXX VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 23)
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)

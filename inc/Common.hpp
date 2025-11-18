@@ -8,6 +8,8 @@
 #include "dr4/math/rect.hpp"
 #include "dr4/mouse_buttons.hpp"
 
+#include "IAError.hpp"
+
 namespace ia {
 
 SDL_Color convertToSDLColor(const dr4::Color &color);
@@ -40,27 +42,27 @@ RendererGuard(SDL_Renderer* renderer) : renderer_(renderer) {
     assert(renderer_);
 
     savedTarget_ = SDL_GetRenderTarget(renderer_);
-    SDL_GetRenderDrawColor(renderer_, &r_, &g_, &b_, &a_);
-    SDL_GetRenderDrawBlendMode(renderer_, &blend_);
+    requireSDLCondition(SDL_GetRenderDrawColor(renderer_, &r_, &g_, &b_, &a_) == 0);
+    requireSDLCondition(SDL_GetRenderDrawBlendMode(renderer_, &blend_) == 0);
     SDL_RenderGetViewport(renderer_, &savedViewport_);
     SDL_RenderGetClipRect(renderer_, &savedClip_);
 };
 
 ~RendererGuard() {
-    SDL_SetRenderTarget(renderer_, savedTarget_);
+    requireSDLCondition(SDL_SetRenderTarget(renderer_, savedTarget_) == 0);
 
-    SDL_SetRenderDrawColor(renderer_, r_, g_, b_, a_);
-    SDL_SetRenderDrawBlendMode(renderer_, blend_);
+    requireSDLCondition(SDL_SetRenderDrawColor(renderer_, r_, g_, b_, a_) == 0);
+    requireSDLCondition(SDL_SetRenderDrawBlendMode(renderer_, blend_) == 0);
 
     if (!isNullRect(savedViewport_))
-        SDL_RenderSetViewport(renderer_, &savedViewport_);
+        requireSDLCondition(SDL_RenderSetViewport(renderer_, &savedViewport_) == 0);
     else
-        SDL_RenderSetViewport(renderer_, nullptr);
+        requireSDLCondition(SDL_RenderSetViewport(renderer_, nullptr) == 0);
 
     if (!isNullRect(savedClip_))
-        SDL_RenderSetClipRect(renderer_, &savedClip_);
+        requireSDLCondition(SDL_RenderSetClipRect(renderer_, &savedClip_) == 0);
     else
-        SDL_RenderSetClipRect(renderer_, nullptr);
+        requireSDLCondition(SDL_RenderSetClipRect(renderer_, nullptr) == 0);
     }
 };
 

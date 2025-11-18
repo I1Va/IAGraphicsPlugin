@@ -8,6 +8,7 @@
 
 #include "dr4/window.hpp"
 
+#include "IAError.hpp"
 #include "Drawable.hpp"
 
 
@@ -36,21 +37,12 @@ public:
             SDL_WINDOW_HIDDEN
         );
 
-        if (!window_) {
-            printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
-            SDL_Quit();
-            // return 1;
-        }
+        requireSDLCondition(window_ != nullptr);
 
         renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
-        if (!renderer_) {
-            printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
-            SDL_DestroyWindow(window_);
-            SDL_Quit();
-            // return 1;
-        }
+        requireSDLCondition(renderer_ != nullptr);
 
-        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+        requireSDLCondition(SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND) == 0);
     }
 
     ~Window() override {
@@ -83,18 +75,14 @@ public:
         SDL_RenderClear(renderer_);
     };
 
-    void Draw([[maybe_unused]] const dr4::Texture &texture) override {        
-        try {
-            const Texture &src = dynamic_cast<const Texture &>(texture);
-            RendererGuard rendererGuard(renderer_);
-            
-            SDL_Rect dstRect = SDL_Rect(src.GetPos().x, src.GetPos().y, src.GetWidth(), src.GetHeight());
-            
-            SDL_RenderCopy(renderer_, src.texture_, nullptr, &dstRect);
-        } catch (const std::bad_cast& e) {
-            std::cerr << "Bad cast: " << e.what() << '\n';
-        }
-    }
+    void Draw(const dr4::Texture &texture) override try{        
+        const Texture &src = dynamic_cast<const Texture &>(texture);
+        RendererGuard rendererGuard(renderer_);
+        
+        SDL_Rect dstRect = SDL_Rect(src.GetPos().x, src.GetPos().y, src.GetWidth(), src.GetHeight());
+        
+        SDL_RenderCopy(renderer_, src.texture_, nullptr, &dstRect);
+    } catch (const std::bad_cast& e) { std::throw_with_nested(Dr4Exception("dynamic_cast failed in Texture::drawOn")); }
 
     void Display() override { SDL_RenderPresent(renderer_); }
 

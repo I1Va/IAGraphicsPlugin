@@ -8,7 +8,8 @@
 #include "dr4/math/rect.hpp"
 #include "dr4/mouse_buttons.hpp"
 
-#include "IAError.hpp"
+#include "SDLRAII.hpp"
+class Window;
 
 namespace ia {
 
@@ -31,38 +32,38 @@ inline bool isNullRect(const SDL_Rect &rect) {
 }
 
 struct RendererGuard {
-    SDL_Renderer* renderer_;
-    SDL_Texture* savedTarget_;
+    const raii::SDL_Renderer &renderer_;
+    raii::SDL_Texture savedTarget_;
     SDL_Rect savedViewport_;
     SDL_Rect savedClip_;
     Uint8 r_, g_, b_, a_;
     SDL_BlendMode blend_;
 
-RendererGuard(SDL_Renderer* renderer) : renderer_(renderer) {
+RendererGuard(const raii::SDL_Renderer &renderer) : renderer_(renderer) {
     assert(renderer_);
 
-    savedTarget_ = SDL_GetRenderTarget(renderer_);
-    requireSDLCondition(SDL_GetRenderDrawColor(renderer_, &r_, &g_, &b_, &a_) == 0);
-    requireSDLCondition(SDL_GetRenderDrawBlendMode(renderer_, &blend_) == 0);
-    SDL_RenderGetViewport(renderer_, &savedViewport_);
-    SDL_RenderGetClipRect(renderer_, &savedClip_);
+    savedTarget_ = raii::SDL_Texture(SDL_GetRenderTarget(renderer_.get()));
+    requireSDLCondition(SDL_GetRenderDrawColor(renderer_.get(), &r_, &g_, &b_, &a_) == 0);
+    requireSDLCondition(SDL_GetRenderDrawBlendMode(renderer_.get(), &blend_) == 0);
+    SDL_RenderGetViewport(renderer_.get(), &savedViewport_);
+    SDL_RenderGetClipRect(renderer_.get(), &savedClip_);
 };
 
 ~RendererGuard() {
-    requireSDLCondition(SDL_SetRenderTarget(renderer_, savedTarget_) == 0);
+    requireSDLCondition(SDL_SetRenderTarget(renderer_.get(), savedTarget_.get()) == 0);
 
-    requireSDLCondition(SDL_SetRenderDrawColor(renderer_, r_, g_, b_, a_) == 0);
-    requireSDLCondition(SDL_SetRenderDrawBlendMode(renderer_, blend_) == 0);
+    requireSDLCondition(SDL_SetRenderDrawColor(renderer_.get(), r_, g_, b_, a_) == 0);
+    requireSDLCondition(SDL_SetRenderDrawBlendMode(renderer_.get(), blend_) == 0);
 
     if (!isNullRect(savedViewport_))
-        requireSDLCondition(SDL_RenderSetViewport(renderer_, &savedViewport_) == 0);
+        requireSDLCondition(SDL_RenderSetViewport(renderer_.get(), &savedViewport_) == 0);
     else
-        requireSDLCondition(SDL_RenderSetViewport(renderer_, nullptr) == 0);
+        requireSDLCondition(SDL_RenderSetViewport(renderer_.get(), nullptr) == 0);
 
     if (!isNullRect(savedClip_))
-        requireSDLCondition(SDL_RenderSetClipRect(renderer_, &savedClip_) == 0);
+        requireSDLCondition(SDL_RenderSetClipRect(renderer_.get(), &savedClip_) == 0);
     else
-        requireSDLCondition(SDL_RenderSetClipRect(renderer_, nullptr) == 0);
+        requireSDLCondition(SDL_RenderSetClipRect(renderer_.get(), nullptr) == 0);
     }
 };
 

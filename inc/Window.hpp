@@ -7,16 +7,14 @@
 #include <iostream>
 
 #include "dr4/window.hpp"
-
-#include "IAError.hpp"
 #include "Drawable.hpp"
 
 
 namespace ia {
 
 class Window : public dr4::Window {
-    SDL_Renderer *renderer_ = nullptr;
-    SDL_Window *window_ = nullptr;
+    raii::SDL_Renderer renderer_;
+    raii::SDL_Window window_;
     std::string title_;
     dr4::Vec2f size_;
     bool isOpen_ = false;
@@ -29,26 +27,22 @@ public:
         const int height=100
     ) : title_(title), size_(width, height)
     {
-        window_ = SDL_CreateWindow(
+        window_ = raii::SDL_CreateWindow(
             title_.c_str(),
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             size_.x, size_.y,
             SDL_WINDOW_HIDDEN
         );
-
         requireSDLCondition(window_ != nullptr);
 
-        renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
+        renderer_ = raii::SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
         requireSDLCondition(renderer_ != nullptr);
 
-        requireSDLCondition(SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND) == 0);
+        requireSDLCondition(SDL_SetRenderDrawBlendMode(renderer_.get(), SDL_BLENDMODE_BLEND) == 0);
     }
 
-    ~Window() override {
-        if (renderer_) SDL_DestroyRenderer(renderer_);
-        if (window_) SDL_DestroyWindow(window_);
-    }
+    ~Window() = default;
 
     void SetTitle(const std::string &title) override { title_ = title; }
     const std::string &GetTitle() const override { return title_; }
@@ -56,23 +50,23 @@ public:
     dr4::Vec2f GetSize() const override { return size_; };
     void SetSize(dr4::Vec2f size) override { 
         size_ = size; 
-        SDL_SetWindowSize(window_, size_.x, size_.y);
+        SDL_SetWindowSize(window_.get(), size_.x, size_.y);
     }
 
     void Open() override {
-        SDL_ShowWindow(window_);
+        SDL_ShowWindow(window_.get());
         isOpen_ = true;
     };
     bool IsOpen() const override { return isOpen_; }
     void Close() override {
-        SDL_HideWindow(window_);
+        SDL_HideWindow(window_.get());
         isOpen_ = false;
     }
 
     void Clear(dr4::Color color) override {
         RendererGuard renderGuard(renderer_);
-        SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
-        SDL_RenderClear(renderer_);
+        SDL_SetRenderDrawColor(renderer_.get(), color.r, color.g, color.b, color.a);
+        SDL_RenderClear(renderer_.get());
     };
 
     void Draw(const dr4::Texture &texture) override try{        
@@ -81,14 +75,14 @@ public:
         
         SDL_Rect dstRect = SDL_Rect(src.GetPos().x, src.GetPos().y, src.GetWidth(), src.GetHeight());
         
-        SDL_RenderCopy(renderer_, src.texture_, nullptr, &dstRect);
+        SDL_RenderCopy(renderer_.get(), src.texture_.get(), nullptr, &dstRect);
     } catch (const std::bad_cast& e) { std::throw_with_nested(Dr4Exception("dynamic_cast failed in Texture::drawOn")); }
 
-    void Display() override { SDL_RenderPresent(renderer_); }
+    void Display() override { SDL_RenderPresent(renderer_.get()); }
 
     double GetTime() override { return static_cast<double>(SDL_GetTicks64()) / 1000; }
 
-    Texture   *CreateTexture()   override { return new Texture(renderer_); }
+    Texture   *CreateTexture()   override { return new Texture(*this); }
     Image     *CreateImage()     override { return new Image(); }
     Font      *CreateFont()      override { return new Font(); }
     Line      *CreateLine()      override { return new Line(); }
@@ -165,6 +159,8 @@ public:
         SDL_GetMouseState(&prevMouseX, &prevMouseY);
         return std::nullopt;
     }
+
+    const raii::SDL_Renderer &getRenderer() const { return renderer_; }
 };
 
 }

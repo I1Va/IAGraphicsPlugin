@@ -29,6 +29,8 @@ endif()
 add_library(${PROJECT_NAME} SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Common.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Plugin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SDLRAII.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Drawable.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)

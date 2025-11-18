@@ -1,4 +1,8 @@
+#include <SDL2/SDL.h>
+
 #include "Common.hpp"
+#include "Window.hpp"
+
 
 namespace ia {
 

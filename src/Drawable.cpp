@@ -57,14 +57,17 @@ void Texture::SetPos(dr4::Vec2f pos) { pos_ = pos; }
 dr4::Vec2f Texture::GetPos() const { return pos_; }
 
 void Texture::SetSize(dr4::Vec2f size) {
-    if (texture_) texture_.reset();
-    texture_ = ia::raii::SDL_CreateTexture(window_.getRenderer(),
-                                           SDL_PIXELFORMAT_RGBA8888,
-                                           SDL_TEXTUREACCESS_TARGET,
-                                           static_cast<int>(size.x), static_cast<int>(size.y));
-    requireSDLCondition(texture_ != nullptr);
+
+    raii::SDL_Texture nexTexture = raii::SDL_CreateTexture(window_.getRenderer(),
+                                                           SDL_PIXELFORMAT_RGBA8888,
+                                                           SDL_TEXTUREACCESS_TARGET,
+                                                           static_cast<int>(size.x), static_cast<int>(size.y));
+    requireSDLCondition(nexTexture != nullptr);
     requireSDLCondition(SDL_SetTextureBlendMode(texture_.get(), SDL_BLENDMODE_BLEND) == 0);
     requireSDLCondition(SDL_SetTextureAlphaMod(texture_.get(), 255) == 0);
+
+    if (texture_) texture_.reset();
+    texture_.swap(nexTexture);
 }
 
 dr4::Vec2f Texture::GetSize() const {
@@ -323,23 +326,25 @@ raii::TTF_Font Font::getFontCopy(float fontSize) const {
 }
 
 float Font::GetAscent(float fontSize) const {
-    const raii::TTF_Font &tmpFont = this->font_;
     if (fontSize != fontSize_) {
         raii::TTF_Font tmpFont = getFontCopy(fontSize);
         requireTTFCondition(tmpFont != nullptr);
+
+        return static_cast<float>(TTF_FontAscent(tmpFont.get()));
     }
 
-    return static_cast<float>(TTF_FontAscent(tmpFont.get()));
+    return static_cast<float>(TTF_FontAscent(font_.get()));
 }
 
 float Font::GetDescent(float fontSize) const {
-    const raii::TTF_Font &tmpFont = this->font_;
     if (fontSize != fontSize_) {
         raii::TTF_Font tmpFont = getFontCopy(fontSize);
         requireTTFCondition(tmpFont != nullptr);
+
+        return static_cast<float>(TTF_FontDescent(tmpFont.get()));
     }
 
-    return static_cast<float>(TTF_FontDescent(tmpFont.get()));
+    return static_cast<float>(TTF_FontDescent(font_.get()));
 }
 
 float Font::getFontSize() const { return static_cast<float>(fontSize_); }
@@ -496,12 +501,8 @@ dr4::Color Image::GetPixel(size_t x, size_t y) const {
 void Image::SetSize(dr4::Vec2f size) {
     assert(surface_);
     raii::SDL_Surface newSurface = createSDLSurface(static_cast<int>(size.x), static_cast<int>(size.y));
-    if (newSurface) {
-        surface_.reset();
-        surface_ = raii::SDL_Surface(newSurface.release());
-    } else {
-        throw SDLException();
-    }
+    requireSDLCondition(newSurface != nullptr);
+    surface_ = std::move(newSurface);
 }
 
 dr4::Vec2f Image::GetSize() const { return dr4::Vec2f{static_cast<float>(surface_->w), static_cast<float>(surface_->h)}; }

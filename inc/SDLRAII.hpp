@@ -13,7 +13,7 @@ struct SDLRendererDeleter { void operator()(::SDL_Renderer *p) const noexcept { 
 struct SDLSurfaceDeleter  { void operator()(::SDL_Surface  *p) const noexcept { if (p) SDL_FreeSurface(p); } };
 struct SDLTextureDeleter  { void operator()(::SDL_Texture  *p) const noexcept { if (p) SDL_DestroyTexture(p); } };
 struct TTFFontDeleter     { void operator()(::TTF_Font     *p) const noexcept { if (p) TTF_CloseFont(p); }};
-struct SDL_RWopsDeleter   { void operator()(::SDL_RWops    *p) const noexcept { if (p) SDL_RWclose(p); }};
+struct SDL_RWopsDeleter   { void operator()(::SDL_RWops    *p) const noexcept { if (p) SDL_RWclose(p); }}; // !!!!!!! `0 on success or a negative error code on failure; call SDL_GetError() for more information.`
 
 using SDL_Window   = std::unique_ptr<::SDL_Window,  SDLWindowDeleter>;
 using SDL_Renderer = std::unique_ptr<::SDL_Renderer,SDLRendererDeleter>;

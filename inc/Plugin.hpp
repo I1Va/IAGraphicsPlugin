@@ -28,10 +28,10 @@ struct IAGraphicsBackEnd : public cum::DR4BackendPlugin {
 
     ~IAGraphicsBackEnd() { SDL_Quit(); }
 
-    std::string_view GetIdentifier() const override { return "ru.IAIndustries.dr4PluginProject.IAGraphicsBackEnd"; }
-    std::string_view GetName() const override { return "IAGraphicsBackEnd"; }
+    std::string_view GetIdentifier() const override { return "ru.IAIndustries.dr4BackendProject.IAGraphicsPlugin"; }
+    std::string_view GetName() const override { return "IAGraphicsPlugin"; }
     std::string_view GetDescription() const override { 
-        return "IAGraphics - a wrapper over SDL2 that complies with the dr4::draft2 standard";
+        return "IAGraphicsPlugin - a wrapper over SDL2 that complies with the dr4::draft2 standard";
     }
     std::vector<std::string_view> GetDependencies() const override  { return {}; }
     std::vector<std::string_view> GetConflicts() const override { return {}; }

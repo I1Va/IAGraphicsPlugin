@@ -177,9 +177,8 @@ public:
     void setFontSize(float fontSize);
 
 private:
+    void setFontSizeDetail(float fontSize) const;
     void resetFont();
-    void loadFromRWBUffer(raii::SDL_RWops bufer);
-    raii::TTF_Font getFontCopy(float fontSize) const;
 };
 
 // ---------------- FontGuard ----------------

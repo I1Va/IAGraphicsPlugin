@@ -60,16 +60,16 @@ void Texture::SetPos(dr4::Vec2f pos) { pos_ = pos; }
 dr4::Vec2f Texture::GetPos() const { return pos_; }
 
 void Texture::SetSize(dr4::Vec2f size) {
-    raii::SDL_Texture nexTexture = raii::SDL_CreateTexture(window_.getRenderer(),
+    raii::SDL_Texture newTexture = raii::SDL_CreateTexture(window_.getRenderer(),
                                                            SDL_PIXELFORMAT_RGBA8888,
                                                            SDL_TEXTUREACCESS_TARGET,
                                                            static_cast<int>(size.x), static_cast<int>(size.y));
-    requireSDLCondition(nexTexture != nullptr);
-    requireSDLCondition(SDL_SetTextureBlendMode(texture_.get(), SDL_BLENDMODE_BLEND) == 0);
-    requireSDLCondition(SDL_SetTextureAlphaMod(texture_.get(), 255) == 0);
+    requireSDLCondition(newTexture != nullptr);
+    requireSDLCondition(SDL_SetTextureBlendMode(newTexture.get(), SDL_BLENDMODE_BLEND) == 0);
+    requireSDLCondition(SDL_SetTextureAlphaMod(newTexture.get(), 255) == 0);
 
     if (texture_) texture_.reset();
-    texture_.swap(nexTexture);
+    texture_.swap(newTexture);
 }
 
 dr4::Vec2f Texture::GetSize() const {
@@ -101,10 +101,10 @@ dr4::Rect2f Texture::GetClipRect() const {
 }
 
 void Texture::Clear(dr4::Color color) {
-    RendererGuard renderGuard(window_.getRenderer()); // keep original style: pass window
+    RendererGuard renderGuard(window_.getRenderer()); 
     requireSDLCondition(SDL_SetRenderTarget(window_.getRenderer().get(), texture_.get()) == 0);
-    requireSDLCondition(SDL_SetRenderDrawColor(window_.getRenderer().get(), color.r, color.g, color.b, color.a) == 0);
-    requireSDLCondition(SDL_RenderClear(window_.getRenderer().get()) == 0);
+    requireSDLCondition(SDL_SetRenderDrawColor(getRenderer().get(), color.r, color.g, color.b, color.a) == 0);    
+    requireSDLCondition(SDL_RenderClear(getRenderer().get()) == 0);
 }
 
 const Window &Texture::getWindow() const { return window_; }
@@ -317,16 +317,6 @@ void Font::LoadFromFile(const std::string& path) {
     requireTTFCondition(font_ != nullptr);
 }
 
-void Font::loadFromRWBUffer(raii::SDL_RWops bufer) {
-    assert(bufer);
-    font_.reset();
-    font_ = raii::TTF_OpenFontRW(bufer.get(), 0, fontSize_);
-    if (!font_) {
-        resetFont();
-        throw TTFException();
-    }
-}
-
 void Font::LoadFromBuffer(const void *buffer, size_t size) {
     assert(buffer);
     resetFont();
@@ -340,47 +330,30 @@ void Font::LoadFromBuffer(const void *buffer, size_t size) {
     }
 }
 
-raii::TTF_Font Font::getFontCopy(float fontSize) const {
-    assert(!(lastFileLoadpath.has_value() && (lastLoadBufer != nullptr)));
-
-    TTF_Font *raw = nullptr;
-    if (lastFileLoadpath.has_value())
-        raw = TTF_OpenFont(lastFileLoadpath.value().c_str(), static_cast<int>(fontSize));
-    else
-        raw = TTF_OpenFontRW(lastLoadBufer.get(), 0, static_cast<int>(fontSize));
-
-    return raii::TTF_Font(raw);
-}
-
 float Font::GetAscent(float fontSize) const {
-    if (fontSize != fontSize_) {
-        raii::TTF_Font tmpFont = getFontCopy(fontSize);
-        requireTTFCondition(tmpFont != nullptr);
+    setFontSizeDetail(fontSize);
+    float fontAscent = static_cast<float>(TTF_FontAscent(font_.get()));
+    setFontSizeDetail(fontSize_);
 
-        return static_cast<float>(TTF_FontAscent(tmpFont.get()));
-    }
-
-    return static_cast<float>(TTF_FontAscent(font_.get()));
+    return fontAscent;
 }
 
 float Font::GetDescent(float fontSize) const {
-    if (fontSize != fontSize_) {
-        raii::TTF_Font tmpFont = getFontCopy(fontSize);
-        requireTTFCondition(tmpFont != nullptr);
+    setFontSizeDetail(fontSize);
+    float fontDescent = static_cast<float>(TTF_FontDescent(font_.get()));
+    setFontSizeDetail(fontSize_);
 
-        return static_cast<float>(TTF_FontDescent(tmpFont.get()));
-    }
-
-    return static_cast<float>(TTF_FontDescent(font_.get()));
+    return fontDescent;
 }
 
 float Font::getFontSize() const { return static_cast<float>(fontSize_); }
 
+void Font::setFontSizeDetail(float fontSize) const {
+    requireTTFCondition(TTF_SetFontSize(font_.get(), fontSize) == 0);    
+}
+
 void Font::setFontSize(float fontSize) {
-    if (fontSize != fontSize_) {
-        font_.reset();
-        font_ = getFontCopy(fontSize);
-    }
+    requireTTFCondition(TTF_SetFontSize(font_.get(), fontSize) == 0);    
 }
 
 // ---------------- FontGuard ----------------

@@ -13,10 +13,10 @@ class Window;
 
 namespace ia {
 
-SDL_Color convertToSDLColor(const dr4::Color &color);
+dr4::Rect2f convertToDr4Rect(const SDL_Rect rect);
+SDL_Rect convertToSDLRect(const dr4::Rect2f rect);
+SDL_Color convertToSDLColor(const dr4::Color color);
 dr4::Color convertToDr4Color(const SDL_Color color);
-
-SDL_Rect convertToSDLRect(const dr4::Rect2f &rect);
 
 dr4::KeyMode convertToDr4KeyMode(const Uint16 SDLKeyMod);
 dr4::KeyCode convertToDr4KeyCode(const SDL_Keycode SDLKeySym);

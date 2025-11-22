@@ -28,6 +28,7 @@ class Texture : public dr4::Texture {
     ia::raii::SDL_Texture      texture_;
     dr4::Vec2f                 pos_;
     dr4::Vec2f                 zero_;
+    std::optional<SDL_Rect>    clipRect_;
 
     friend class Line;
     friend class Circle;
@@ -51,6 +52,10 @@ public:
 
     void SetZero(dr4::Vec2f pos) override;
     dr4::Vec2f GetZero() const override;
+
+    void SetClipRect(dr4::Rect2f rect) override;
+    void RemoveClipRect() override;
+    dr4::Rect2f GetClipRect() const override;
 
     void Clear(dr4::Color color) override;
 
@@ -89,14 +94,14 @@ public:
 // ---------------- Circle ----------------
 class Circle : public dr4::Circle {
     dr4::Vec2f pos_;
-    float radius_;
+    dr4::Vec2f radius_;
     float borderThickness_;
     SDL_Color fillColor_;
     SDL_Color borderColor_;
 
 public:
     Circle() = default;
-    Circle(dr4::Vec2f pos, float radius, float borderThickness,
+    Circle(dr4::Vec2f pos, dr4::Vec2f radius, float borderThickness,
            SDL_Color fillColor, SDL_Color borderColor);
     ~Circle() override = default;
 
@@ -106,13 +111,13 @@ public:
     dr4::Vec2f GetPos() const override;
 
     void SetCenter(dr4::Vec2f center) override;
-    void SetRadius(float radius) override;
+    void SetRadius(dr4::Vec2f radius) override;
     void SetFillColor(dr4::Color color) override;
     void SetBorderColor(dr4::Color color) override;
     void SetBorderThickness(float thickness) override;
 
     dr4::Vec2f GetCenter() const override;
-    float GetRadius() const override;
+    dr4::Vec2f GetRadius() const override;
     dr4::Color GetFillColor() const override;
     dr4::Color GetBorderColor() const override;
     float GetBorderThickness() const override;
@@ -213,12 +218,12 @@ public:
     void SetVAlign(dr4::Text::VAlign align) override;
     void SetFont(const dr4::Font *font) override;
 
-    dr4::Vec2f GetBounds() const override;
+    dr4::Vec2f         GetBounds() const override;
     const std::string &GetText() const override;
-    dr4::Color GetColor() const override;
-    float GetFontSize() const override;
-    VAlign GetVAlign() const override;
-    const Font &GetFont() const override;
+    dr4::Color         GetColor() const override;
+    float              GetFontSize() const override;
+    VAlign             GetVAlign() const override;
+    const Font        *GetFont() const override;
 
 private:
     void DrawTextDetail(const raii::SDL_Renderer &renderer, 

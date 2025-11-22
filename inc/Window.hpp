@@ -81,7 +81,7 @@ public:
     void Display() override { SDL_RenderPresent(renderer_.get()); }
 
     double GetTime() override { return static_cast<double>(SDL_GetTicks64()) / 1000; }
-
+    void Sleep(double time) override { SDL_Delay(static_cast<Uint32> (time * 1000));}
     Texture   *CreateTexture()   override { return new Texture(*this); }
     Image     *CreateImage()     override { return new Image(); }
     Font      *CreateFont()      override { return new Font(); }
@@ -124,8 +124,7 @@ public:
 
                 dr4Event.type = dr4::Event::Type::MOUSE_WHEEL;
                 dr4Event.mouseWheel.pos = dr4::Vec2f(mouseX, mouseY);
-                dr4Event.mouseWheel.deltaY = SDLEvent.wheel.y;
-                dr4Event.mouseWheel.deltaX = SDLEvent.wheel.x;
+                dr4Event.mouseWheel.delta = dr4::Vec2f(SDLEvent.wheel.x, SDLEvent.wheel.y);
                 return dr4Event;
             }
 

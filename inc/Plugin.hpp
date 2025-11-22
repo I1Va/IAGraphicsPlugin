@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h> 
 
-#include "misc/dr4_ifc.hpp"
+#include "cum/ifc/dr4.hpp"
 #include "dr4/window.hpp"
 #include "dr4/texture.hpp"
 
@@ -12,10 +12,7 @@
 
 namespace ia {
     
-class IAGraphicsBackEnd : public dr4::DR4Backend {
-    const std::string name_ = "IAGraphicsBackEnd";
-
-public:
+struct IAGraphicsBackEnd : public cum::DR4BackendPlugin {
     IAGraphicsBackEnd() {
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
             SDL_Quit();
@@ -31,7 +28,14 @@ public:
 
     ~IAGraphicsBackEnd() { SDL_Quit(); }
 
-    const std::string &Name() const { return name_; }
+    std::string_view GetIdentifier() const override { return "ru.IAIndustries.dr4PluginProject.IAGraphicsBackEnd"; }
+    std::string_view GetName() const override { return "IAGraphicsBackEnd"; }
+    std::string_view GetDescription() const override { 
+        return "IAGraphics - a wrapper over SDL2 that complies with the dr4::draft2 standard";
+    }
+    std::vector<std::string_view> GetDependencies() const override  { return {}; }
+    std::vector<std::string_view> GetConflicts() const override { return {}; }
+    void AfterLoad() override {}
 
     dr4::Window *CreateWindow() { return new Window("Window"); }
 };

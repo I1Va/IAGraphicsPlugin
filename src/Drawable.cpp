@@ -11,7 +11,7 @@ namespace ia {
 
 // ---------------- Texture ----------------
 Texture::Texture(const Window &window, int width, int height):
-    window_(window), texture_(nullptr), pos_{0,0}, zero_{0,0}
+    window_(window), texture_(nullptr), pos_{0,0}, zero_{0,0}, clipRect_(std::nullopt)
 {
     if (width > 0 && height > 0) {
         texture_ = ia::raii::SDL_CreateTexture(window_.getRenderer(),
@@ -39,14 +39,17 @@ void Texture::DrawOn(dr4::Texture& texture) const {
 
         int textureWidth, textureHeight;
         requireSDLCondition(SDL_QueryTexture(texture_.get(), NULL, NULL, &textureWidth, &textureHeight) == 0);
-
-        SDL_Rect dstRect = {
+        
+        SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
+    
+        SDL_Rect dstRect = 
+        {
             static_cast<int>(dstTexture.zero_.x + pos_.x),
             static_cast<int>(dstTexture.zero_.y + pos_.y),
             textureWidth,
             textureHeight
         };
-
         requireSDLCondition(SDL_RenderCopy(dstTexture.getRenderer().get(), texture_.get(), nullptr, &dstRect) == 0);
     } catch (const std::bad_cast&) {
         std::throw_with_nested(Dr4Exception("Bad cast in Texture::DrawOn"));
@@ -57,7 +60,6 @@ void Texture::SetPos(dr4::Vec2f pos) { pos_ = pos; }
 dr4::Vec2f Texture::GetPos() const { return pos_; }
 
 void Texture::SetSize(dr4::Vec2f size) {
-
     raii::SDL_Texture nexTexture = raii::SDL_CreateTexture(window_.getRenderer(),
                                                            SDL_PIXELFORMAT_RGBA8888,
                                                            SDL_TEXTUREACCESS_TARGET,
@@ -82,6 +84,22 @@ float Texture::GetHeight() const { return GetSize().y; }
 void Texture::SetZero(dr4::Vec2f pos) { zero_ = pos; }
 dr4::Vec2f Texture::GetZero() const { return zero_; }
 
+void Texture::SetClipRect(dr4::Rect2f rect) {
+    clipRect_ = SDL_Rect
+    (
+        static_cast<int>(rect.pos.x),
+        static_cast<int>(rect.pos.y),
+        static_cast<int>(rect.size.x),
+        static_cast<int>(rect.size.y)
+    );
+}
+
+void Texture::RemoveClipRect() { clipRect_.reset(); }
+
+dr4::Rect2f Texture::GetClipRect() const {
+    return convertToDr4Rect(clipRect_.value_or(SDL_Rect(0, 0, GetWidth(), GetHeight())));
+}
+
 void Texture::Clear(dr4::Color color) {
     RendererGuard renderGuard(window_.getRenderer()); // keep original style: pass window
     requireSDLCondition(SDL_SetRenderTarget(window_.getRenderer().get(), texture_.get()) == 0);
@@ -102,6 +120,9 @@ void Line::DrawOn(dr4::Texture &texture) const {
 
         RendererGuard renderGuard(dstTexture.getRenderer());
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
+
+        SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
         thickLineColor(dstTexture.getRenderer().get(),
                        dstTexture.zero_.x + start_.x,
@@ -130,7 +151,7 @@ dr4::Color Line::GetColor() const { return dr4::Color(color_.r, color_.g, color_
 float Line::GetThickness() const { return thickness_; }
 
 // ---------------- Circle ----------------
-Circle::Circle(dr4::Vec2f pos, float radius, float borderThickness,
+Circle::Circle(dr4::Vec2f pos, dr4::Vec2f radius, float borderThickness,
                SDL_Color fillColor, SDL_Color borderColor)
     : pos_(pos), radius_(radius), borderThickness_(borderThickness),
       fillColor_(fillColor), borderColor_(borderColor) {}
@@ -142,32 +163,35 @@ void Circle::DrawOn(dr4::Texture &texture) const {
         RendererGuard renderGuard(dstTexture.getRenderer());
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
 
+        SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
+
         if (borderThickness_ <= 0) {
-            requireSDLCondition(filledCircleRGBA(dstTexture.getRenderer().get(),
+            requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
                 dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-                radius_, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a) == 0);
+                radius_.x, radius_.y, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a) == 0);
             return;
         }
 
-        float innerRadius = radius_ - borderThickness_;
-        if (innerRadius <= 0) {
-            requireSDLCondition(filledCircleRGBA(dstTexture.getRenderer().get(),
+        dr4::Vec2f innerRadius = radius_ - dr4::Vec2f(borderThickness_, borderThickness_);
+        if (innerRadius.x <= 0 || innerRadius.y <= 0) {
+            requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
                 dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-                radius_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
+                radius_.x, radius_.y, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
             return;
         }
 
         requireSDLCondition(SDL_SetRenderDrawBlendMode(dstTexture.getRenderer().get(), SDL_BLENDMODE_BLEND) == 0);
 
-        requireSDLCondition(filledCircleRGBA(dstTexture.getRenderer().get(),
+        requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
             dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-            radius_, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
+            radius_.x, radius_.y, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
 
         requireSDLCondition(SDL_SetRenderDrawBlendMode(dstTexture.getRenderer().get(), SDL_BLENDMODE_NONE) == 0);
 
-        requireSDLCondition(filledCircleRGBA(dstTexture.getRenderer().get(),
+        requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
             dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-            innerRadius, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a) == 0);
+            innerRadius.x, innerRadius.y, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a) == 0);
 
         requireSDLCondition(SDL_SetRenderDrawBlendMode(dstTexture.getRenderer().get(), SDL_BLENDMODE_BLEND) == 0);
     } catch (const std::bad_cast&) {
@@ -178,12 +202,12 @@ void Circle::DrawOn(dr4::Texture &texture) const {
 void Circle::SetPos(dr4::Vec2f pos) { pos_ = pos; }
 dr4::Vec2f Circle::GetPos() const { return pos_; }
 void Circle::SetCenter(dr4::Vec2f center) { pos_ = center; }
-void Circle::SetRadius(float radius) { radius_ = radius; }
+void Circle::SetRadius(dr4::Vec2f radius) { radius_ = radius; }
 void Circle::SetFillColor(dr4::Color color) { fillColor_ = convertToSDLColor(color); }
 void Circle::SetBorderColor(dr4::Color color) { borderColor_ = convertToSDLColor(color); }
 void Circle::SetBorderThickness(float thickness) { borderThickness_ = thickness; }
 dr4::Vec2f Circle::GetCenter() const { return pos_; }
-float Circle::GetRadius() const { return radius_; }
+dr4::Vec2f Circle::GetRadius() const { return radius_; }
 dr4::Color Circle::GetFillColor() const { return convertToDr4Color(fillColor_); }
 dr4::Color Circle::GetBorderColor() const { return convertToDr4Color(borderColor_); }
 float Circle::GetBorderThickness() const { return borderThickness_; }
@@ -199,6 +223,9 @@ void Rectangle::DrawOn(dr4::Texture& texture) const {
 
         RendererGuard renderGuard(dstTexture.getRenderer());
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
+
+        SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
         if (2 * borderThickness_ >= std::fmin(rect_.size.x, rect_.size.y)) {
             requireSDLCondition(SDL_SetRenderDrawColor(
@@ -379,6 +406,10 @@ void Text::DrawOn(dr4::Texture& texture) const {
         FontGuard fontGuard(font_);
 
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
+
+        SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
+
         DrawTextDetail(dstTexture.getRenderer(), font_, text_.c_str(),
                        dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y, vAlign_, color_);
     } catch (const std::bad_cast&) {
@@ -412,7 +443,7 @@ const std::string &Text::GetText() const { return text_; }
 dr4::Color Text::GetColor() const { return convertToDr4Color(color_); }
 float Text::GetFontSize() const { return fontSize_; }
 Text::VAlign Text::GetVAlign() const { return vAlign_; }
-const Font &Text::GetFont() const { return *font_; }
+const Font *Text::GetFont() const { return font_; }
 
 void Text::DrawTextDetail(const raii::SDL_Renderer &renderer, 
                           Font *font, const char* text,
@@ -458,6 +489,9 @@ void Image::DrawOn(dr4::Texture &texture) const try {
 
     RendererGuard renderGuard(dstTexture.getRenderer());
     requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
+
+    SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+    requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
     raii::SDL_Texture surfTex = raii::SDL_CreateTextureFromSurface(dstTexture.getRenderer(), surface_);
     requireSDLCondition(surfTex != nullptr);

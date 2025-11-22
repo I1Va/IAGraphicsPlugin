@@ -6,7 +6,28 @@
 
 namespace ia {
 
-SDL_Color convertToSDLColor(const dr4::Color &color) {
+
+dr4::Rect2f convertToDr4Rect(const SDL_Rect rect) {
+    return dr4::Rect2f 
+    (
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h
+    );
+}
+
+SDL_Rect convertToSDLRect(const dr4::Rect2f rect) {
+    return SDL_Rect 
+    (
+        static_cast<int>(rect.pos.x),
+        static_cast<int>(rect.pos.y),
+        static_cast<int>(rect.size.x),
+        static_cast<int>(rect.size.y)
+    );
+}
+
+SDL_Color convertToSDLColor(const dr4::Color color) {
     return SDL_Color
     (
         color.r,
@@ -23,17 +44,6 @@ dr4::Color convertToDr4Color(const SDL_Color color) {
         color.g,
         color.b,
         color.a  
-    );
-}
-
-
-SDL_Rect convertToSDLRect(const dr4::Rect2f &rect) {
-    return SDL_Rect
-    (
-        static_cast<int> (rect.pos.x),
-        static_cast<int> (rect.pos.y),
-        static_cast<int> (rect.size.x),
-        static_cast<int> (rect.size.y)
     );
 }
 
@@ -192,18 +202,3 @@ dr4::MouseButtonType convertToDr4MouseButton(const Uint8 SDLButton) {
 }
 
 }
-
-// dr4::Rect2f dr4::Text::GetBounds() const { 
-//     try {
-//         const ia::Font *iaFont = dynamic_cast<const ia::Font *>(font);
-//         int textWidth, textHeight;
-
-//         TTF_SizeText(iaFont->font_, text.c_str(), &textWidth, &textHeight);
-
-//         return dr4::Rect2f(pos.x, pos.y, textWidth, textHeight);
-//     } catch (const std::bad_cast& e) {
-//         std::cerr << "Bad cast in dr4::Text::GetBounds: " << e.what() << '\n';
-
-//         return {};
-//     }
-// }

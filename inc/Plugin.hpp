@@ -26,7 +26,7 @@ struct IAGraphicsBackEnd : public cum::DR4BackendPlugin {
         }
     }
 
-    ~IAGraphicsBackEnd() { SDL_Quit(); }
+    ~IAGraphicsBackEnd() { SDL_Quit(); TTF_Quit(); }
 
     std::string_view GetIdentifier() const override { return "ru.IAIndustries.dr4BackendProject.IAGraphicsPlugin"; }
     std::string_view GetName() const override { return "IAGraphicsPlugin"; }

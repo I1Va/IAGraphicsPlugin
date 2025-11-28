@@ -41,6 +41,8 @@ void Texture::DrawOn(dr4::Texture& texture) const {
         requireSDLCondition(SDL_QueryTexture(texture_.get(), NULL, NULL, &textureWidth, &textureHeight) == 0);
         
         SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        dstClipRect.x += GetZero().x;
+        dstClipRect.y += GetZero().y;
         requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
     
         SDL_Rect dstRect = 
@@ -122,6 +124,8 @@ void Line::DrawOn(dr4::Texture &texture) const {
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
 
         SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        dstClipRect.x += dstTexture.GetZero().x;
+        dstClipRect.y += dstTexture.GetZero().y;
         requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
         thickLineColor(dstTexture.getRenderer().get(),
@@ -164,6 +168,8 @@ void Circle::DrawOn(dr4::Texture &texture) const {
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
 
         SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        dstClipRect.x += dstTexture.GetZero().x;
+        dstClipRect.y += dstTexture.GetZero().y;
         requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
         if (borderThickness_ <= 0) {
@@ -225,6 +231,8 @@ void Rectangle::DrawOn(dr4::Texture& texture) const {
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
 
         SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        dstClipRect.x += dstTexture.GetZero().x;
+        dstClipRect.y += dstTexture.GetZero().y;
         requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
         if (2 * borderThickness_ >= std::fmin(rect_.size.x, rect_.size.y)) {
@@ -381,6 +389,8 @@ void Text::DrawOn(dr4::Texture& texture) const {
         requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
 
         SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+        dstClipRect.x += dstTexture.GetZero().x;
+        dstClipRect.y += dstTexture.GetZero().y;
         requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
         DrawTextDetail(dstTexture.getRenderer(), font_, text_.c_str(),
@@ -464,6 +474,8 @@ void Image::DrawOn(dr4::Texture &texture) const try {
     requireSDLCondition(SDL_SetRenderTarget(dstTexture.getRenderer().get(), dstTexture.texture_.get()) == 0);
 
     SDL_Rect dstClipRect = convertToSDLRect(dstTexture.GetClipRect());
+    dstClipRect.x += dstTexture.GetZero().x;
+    dstClipRect.y += dstTexture.GetZero().y;
     requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
     raii::SDL_Texture surfTex = raii::SDL_CreateTextureFromSurface(dstTexture.getRenderer(), surface_);

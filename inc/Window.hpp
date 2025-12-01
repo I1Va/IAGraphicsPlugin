@@ -95,68 +95,66 @@ public:
 
     std::optional<dr4::Event> PollEvent() override {
         SDL_Event SDLEvent{};
-        dr4::Event dr4Event{};
+        std::optional<dr4::Event> dr4Event = dr4::Event();
         static int prevMouseX = 0, prevMouseY = 0;
 
         if (!SDL_PollEvent(&SDLEvent)) return std::nullopt;
         switch (SDLEvent.type) {
             case SDL_QUIT:
-                dr4Event.type = dr4::Event::Type::QUIT;
-                
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::QUIT;
+                break;
 
             case SDL_KEYDOWN:
-                dr4Event.type = dr4::Event::Type::KEY_DOWN;
-                dr4Event.key.sym = convertToDr4KeyCode(SDLEvent.key.keysym.sym);
-                dr4Event.key.mods = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::KEY_DOWN;
+                dr4Event.value().key.sym = convertToDr4KeyCode(SDLEvent.key.keysym.sym);
+                dr4Event.value().key.mods = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
+                break;
 
             case SDL_KEYUP:
-                dr4Event.type = dr4::Event::Type::KEY_UP;
-                dr4Event.key.sym = convertToDr4KeyCode(SDLEvent.key.keysym.sym);
-                dr4Event.key.mods = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::KEY_UP;
+                dr4Event.value().key.sym = convertToDr4KeyCode(SDLEvent.key.keysym.sym);
+                dr4Event.value().key.mods = convertToDr4KeyMode(SDLEvent.key.keysym.mod);
+                break;
 
             case SDL_MOUSEWHEEL:
             {
                 int mouseX = 0, mouseY = 0;
                 SDL_GetMouseState(&mouseX, &mouseY);
 
-                dr4Event.type = dr4::Event::Type::MOUSE_WHEEL;
-                dr4Event.mouseWheel.pos = dr4::Vec2f(mouseX, mouseY);
-                dr4Event.mouseWheel.delta = dr4::Vec2f(SDLEvent.wheel.x, SDLEvent.wheel.y);
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::MOUSE_WHEEL;
+                dr4Event.value().mouseWheel.pos = dr4::Vec2f(mouseX, mouseY);
+                dr4Event.value().mouseWheel.delta = dr4::Vec2f(SDLEvent.wheel.x, SDLEvent.wheel.y);
+                break;
             }
 
             case SDL_MOUSEBUTTONDOWN:
-                dr4Event.type = dr4::Event::Type::MOUSE_DOWN;
-                dr4Event.mouseButton.button = convertToDr4MouseButton(SDLEvent.button.button);
-                dr4Event.mouseButton.pos = dr4::Vec2f(SDLEvent.button.x, SDLEvent.button.y);
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::MOUSE_DOWN;
+                dr4Event.value().mouseButton.button = convertToDr4MouseButton(SDLEvent.button.button);
+                dr4Event.value().mouseButton.pos = dr4::Vec2f(SDLEvent.button.x, SDLEvent.button.y);
+                break;
 
             case SDL_MOUSEBUTTONUP:
-                dr4Event.type = dr4::Event::Type::MOUSE_UP;
-                dr4Event.mouseButton.button = convertToDr4MouseButton(SDLEvent.button.button);
-                dr4Event.mouseButton.pos = dr4::Vec2f(SDLEvent.button.x, SDLEvent.button.y);
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::MOUSE_UP;
+                dr4Event.value().mouseButton.button = convertToDr4MouseButton(SDLEvent.button.button);
+                dr4Event.value().mouseButton.pos = dr4::Vec2f(SDLEvent.button.x, SDLEvent.button.y);
+                break;
 
             case SDL_MOUSEMOTION:
             {
                 int mouseX = 0, mouseY = 0;
                 SDL_GetMouseState(&mouseX, &mouseY);
-
-                dr4Event.type = dr4::Event::Type::MOUSE_MOVE;
-                dr4Event.mouseMove.pos = dr4::Vec2f(mouseX, mouseY);
-                dr4Event.mouseMove.rel = dr4::Vec2f(mouseX - prevMouseX, mouseY - prevMouseY);
-
-                return dr4Event;
+                dr4Event.value().type = dr4::Event::Type::MOUSE_MOVE;
+                dr4Event.value().mouseMove.pos = dr4::Vec2f(mouseX, mouseY);
+                dr4Event.value().mouseMove.rel = dr4::Vec2f(mouseX - prevMouseX, mouseY - prevMouseY);
+                break;
             }
 
             default:
+                dr4Event = std::nullopt;
                 break;
         }
         SDL_GetMouseState(&prevMouseX, &prevMouseY);
-        return std::nullopt;
+        return dr4Event;
     }
 
     const raii::SDL_Renderer &getRenderer() const { return renderer_; }

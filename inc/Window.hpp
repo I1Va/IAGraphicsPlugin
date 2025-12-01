@@ -12,6 +12,9 @@
 
 namespace ia {
 
+static constexpr size_t BUFER_SIZE = 32;
+static char BUFER[BUFER_SIZE] = {};
+
 class Window : public dr4::Window {
     raii::SDL_Renderer renderer_;
     raii::SDL_Window window_;
@@ -96,6 +99,8 @@ public:
     std::optional<dr4::Event> PollEvent() override {
         SDL_Event SDLEvent{};
         std::optional<dr4::Event> dr4Event = dr4::Event();
+        dr4Event.value().text.unicode = BUFER;
+
         static int prevMouseX = 0, prevMouseY = 0;
 
         if (!SDL_PollEvent(&SDLEvent)) return std::nullopt;
@@ -148,6 +153,14 @@ public:
                 dr4Event.value().mouseMove.rel = dr4::Vec2f(mouseX - prevMouseX, mouseY - prevMouseY);
                 break;
             }
+
+            case SDL_TEXTINPUT:
+            {
+                dr4Event.value().type = dr4::Event::Type::TEXT_EVENT;
+                strncpy(const_cast<char *>(dr4Event.value().text.unicode), SDLEvent.text.text, BUFER_SIZE);
+                break;
+            }
+                 
 
             default:
                 dr4Event = std::nullopt;

@@ -161,7 +161,6 @@ public:
                 break;
             }
                  
-
             default:
                 dr4Event = std::nullopt;
                 break;

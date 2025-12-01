@@ -435,6 +435,7 @@ void Text::DrawTextDetail(const raii::SDL_Renderer &renderer,
     font->setFontSize(fontSize_);
 
     raii::SDL_Surface surf = raii::TTF_RenderUTF8_Blended(font->font_, text, color);
+    if (!surf) surf = raii::TTF_RenderUTF8_Blended(font->font_, " ", color); 
     requireSDLCondition(surf != nullptr);
 
     raii::SDL_Texture tex = raii::SDL_CreateTextureFromSurface(renderer, surf);

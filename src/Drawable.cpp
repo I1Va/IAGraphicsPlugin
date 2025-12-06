@@ -109,6 +109,38 @@ void Texture::Clear(dr4::Color color) {
     requireSDLCondition(SDL_RenderClear(getRenderer().get()) == 0);
 }
 
+dr4::Image* Texture::GetImage() const {
+    int w, h;
+    if (SDL_QueryTexture(texture_.get(), nullptr, nullptr, &w, &h) != 0) return nullptr;
+
+    raii::SDL_Surface surface = raii::SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+    if (!surface.get()) return nullptr;
+
+    SDL_Texture* old = SDL_GetRenderTarget(getRenderer().get());
+    if (SDL_SetRenderTarget(getRenderer().get(), texture_.get()) != 0) return nullptr;
+
+    if (SDL_RenderReadPixels(
+            getRenderer().get(),
+            nullptr,
+            surface->format->format,
+            surface->pixels,
+            surface->pitch
+        ) != 0)
+    {
+        SDL_SetRenderTarget(getRenderer().get(), old);
+        return nullptr;
+    }
+
+    SDL_SetRenderTarget(getRenderer().get(), old);
+
+    Image* image = nullptr;
+    try { image = new Image();}
+    catch (...) { return nullptr; }
+
+    image->surface_.swap(surface);
+    return image;
+}
+
 const Window &Texture::getWindow() const { return window_; }
 const ia::raii::SDL_Renderer &Texture::getRenderer() const { return window_.getRenderer(); }
 

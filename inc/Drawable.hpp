@@ -58,6 +58,7 @@ public:
     dr4::Rect2f GetClipRect() const override;
 
     void Clear(dr4::Color color) override;
+    dr4::Image* GetImage() const override;
 
     const Window &getWindow() const;
     const ia::raii::SDL_Renderer &getRenderer() const;
@@ -235,9 +236,10 @@ class Image : public dr4::Image {
     static constexpr int BIT_PER_PIXEL = 32;
 
     dr4::Vec2f pos_;
+    
+public:
     raii::SDL_Surface surface_;
 
-public:
     Image();
     Image(int width, int height);
     ~Image() override;

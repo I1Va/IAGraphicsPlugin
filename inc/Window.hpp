@@ -7,8 +7,8 @@
 #include <iostream>
 
 #include "dr4/window.hpp"
-#include "Drawable.hpp"
 
+#include "Drawable.hpp"
 
 namespace ia {
 
@@ -20,6 +20,9 @@ class Window : public dr4::Window {
     raii::SDL_Window window_;
     std::string title_;
     dr4::Vec2f size_;
+
+    std::unique_ptr<const dr4::Font> defaultFont{};
+
     bool isOpen_ = false;
 
 public:
@@ -92,6 +95,12 @@ public:
     Circle    *CreateCircle()    override { return new Circle(); }
     Rectangle *CreateRectangle() override { return new Rectangle(); }
     Text      *CreateText()      override { return new Text(); }
+
+    void SetDefaultFont( const dr4::Font* font ) override { defaultFont.reset(font); }
+    const dr4::Font* GetDefaultFont() override { return defaultFont.get(); }
+
+    void SetClipboard( const std::string& string ) override { std::cout << "IAGraphicsPlugin : TODO: impelement SetClipboard! : " << string << std::endl; }
+    std::string GetClipboard() override { std::cout << "IAGraphicsPlugin : TODO: impelement GetClipboard!" << std::endl; return ""; }
 
     void StartTextInput() override { SDL_StartTextInput(); }
     void StopTextInput() override { SDL_StopTextInput(); }

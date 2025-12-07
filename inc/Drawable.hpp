@@ -22,48 +22,6 @@ namespace ia {
 class Window;          
 class RendererGuard; 
 
-// ---------------- Texture ----------------
-class Texture : public dr4::Texture {
-    const Window&              window_;
-    ia::raii::SDL_Texture      texture_;
-    dr4::Vec2f                 pos_;
-    dr4::Vec2f                 zero_;
-    std::optional<SDL_Rect>    clipRect_;
-
-    friend class Line;
-    friend class Circle;
-    friend class Rectangle;
-    friend class Text;
-    friend class Image;
-    friend class Window;
-
-public:
-    Texture(const Window &window, int width = 100, int height = 100);
-    ~Texture() override;
-
-    void DrawOn(dr4::Texture& texture) const override;
-    void SetPos(dr4::Vec2f pos) override;
-    dr4::Vec2f GetPos() const override;
-
-    void SetSize(dr4::Vec2f size) override;
-    dr4::Vec2f GetSize() const override;
-    float GetWidth() const override;
-    float GetHeight() const override;
-
-    void SetZero(dr4::Vec2f pos) override;
-    dr4::Vec2f GetZero() const override;
-
-    void SetClipRect(dr4::Rect2f rect) override;
-    void RemoveClipRect() override;
-    dr4::Rect2f GetClipRect() const override;
-
-    void Clear(dr4::Color color) override;
-    dr4::Image* GetImage() const override;
-
-    const Window &getWindow() const;
-    const ia::raii::SDL_Renderer &getRenderer() const;
-};
-
 // ---------------- Line ----------------
 class Line : public dr4::Line {
     dr4::Vec2f start_;
@@ -260,5 +218,50 @@ public:
 private:
     raii::SDL_Surface createSDLSurface(int width, int height);
 };
+
+
+// ---------------- Texture ----------------
+class Texture : public dr4::Texture {
+    const Window&              window_;
+    ia::raii::SDL_Texture      texture_;
+    dr4::Vec2f                 pos_;
+    dr4::Vec2f                 zero_;
+    std::optional<SDL_Rect>    clipRect_;
+    std::unique_ptr<Image>     textureImage_;
+
+    friend class Line;
+    friend class Circle;
+    friend class Rectangle;
+    friend class Text;
+    friend class Image;
+    friend class Window;
+
+public:
+    Texture(const Window &window, int width = 100, int height = 100);
+    ~Texture() override;
+
+    void DrawOn(dr4::Texture& texture) const override;
+    void SetPos(dr4::Vec2f pos) override;
+    dr4::Vec2f GetPos() const override;
+
+    void SetSize(dr4::Vec2f size) override;
+    dr4::Vec2f GetSize() const override;
+    float GetWidth() const override;
+    float GetHeight() const override;
+
+    void SetZero(dr4::Vec2f pos) override;
+    dr4::Vec2f GetZero() const override;
+
+    void SetClipRect(dr4::Rect2f rect) override;
+    void RemoveClipRect() override;
+    dr4::Rect2f GetClipRect() const override;
+
+    void Clear(dr4::Color color) override;
+    dr4::Image* GetImage() const override;
+
+    const Window &getWindow() const;
+    const ia::raii::SDL_Renderer &getRenderer() const;
+};
+
 
 } // namespace ia

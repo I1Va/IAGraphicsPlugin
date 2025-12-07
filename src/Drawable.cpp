@@ -12,8 +12,12 @@ namespace ia {
 // ---------------- Texture ----------------
 Texture::Texture(const Window &window, int width, int height):
     window_(window), texture_(nullptr), pos_{0,0}, zero_{0,0}, clipRect_(std::nullopt)
-{
+{   
+    
+    
+
     if (width > 0 && height > 0) {
+     
         texture_ = ia::raii::SDL_CreateTexture(window_.getRenderer(),
                                                SDL_PIXELFORMAT_RGBA8888,
                                                SDL_TEXTUREACCESS_TARGET,
@@ -22,6 +26,10 @@ Texture::Texture(const Window &window, int width, int height):
     
         requireSDLCondition(SDL_SetTextureBlendMode(texture_.get(), SDL_BLENDMODE_BLEND) == 0);
         requireSDLCondition(SDL_SetTextureAlphaMod(texture_.get(), 255) == 0);
+
+        textureImage_.reset(new Image());
+        textureImage_->SetSize({static_cast<float>(width), static_cast<float>(height)});
+
     } else {
         throw_invalid_argument("width/height must be positive");
     }
@@ -133,12 +141,12 @@ dr4::Image* Texture::GetImage() const {
 
     SDL_SetRenderTarget(getRenderer().get(), old);
 
-    Image* image = nullptr;
-    try { image = new Image();}
-    catch (...) { return nullptr; }
 
-    image->surface_.swap(surface);
-    return image;
+    textureImage_->surface_.swap(surface);
+    assert(textureImage_->GetHeight() == h);
+    assert(textureImage_->GetWidth() == w);
+
+    return textureImage_.get();
 }
 
 const Window &Texture::getWindow() const { return window_; }

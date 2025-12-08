@@ -411,6 +411,11 @@ FontGuard::FontGuard(Font *font): font_(font), savedFontSize_(font ? font->getFo
 FontGuard::~FontGuard() { font_->setFontSize(savedFontSize_); }
 
 // ---------------- Text ----------------
+Text::Text(const Font *font) {
+    SetFont(font);
+    assert(font);
+}
+
 void Text::DrawOn(dr4::Texture& texture) const {
     try {
         if (font_ == nullptr) {

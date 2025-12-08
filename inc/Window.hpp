@@ -94,7 +94,15 @@ public:
     Line      *CreateLine()      override { return new Line(); }
     Circle    *CreateCircle()    override { return new Circle(); }
     Rectangle *CreateRectangle() override { return new Rectangle(); }
-    Text      *CreateText()      override { return new Text(); }
+
+    Text *CreateText() override try 
+    { 
+        const Font *font = dynamic_cast<const Font *>(GetDefaultFont());
+        return new Text(font); 
+    } catch (const std::bad_cast &e) {
+        std::cerr << "default dr4::Font dynamic_cast<const Font *> failed\n";
+        return nullptr;
+    }
 
     void SetDefaultFont( const dr4::Font* font ) override { defaultFont.reset(font); }
     const dr4::Font* GetDefaultFont() override { return defaultFont.get(); }

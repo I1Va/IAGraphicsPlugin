@@ -154,7 +154,7 @@ class Text : public dr4::Text {
     static constexpr float DEFAULT_FONT_SIZE = 24;
     
     float fontSize_ = DEFAULT_FONT_SIZE;
-    Font *font_;
+    Font *font_ = nullptr;
     
     SDL_Color color_ = SDL_Color{0,0,0,255};
 
@@ -163,7 +163,7 @@ class Text : public dr4::Text {
     dr4::Vec2f pos_{};
 
 public:
-    Text() = default;
+    Text(const Font *font);
     ~Text() override = default;
 
     void DrawOn(dr4::Texture& texture) const override;

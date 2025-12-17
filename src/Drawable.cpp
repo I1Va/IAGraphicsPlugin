@@ -212,18 +212,19 @@ void Circle::DrawOn(dr4::Texture &texture) const {
         dstClipRect.y += dstTexture.GetZero().y;
         requireSDLCondition(SDL_RenderSetClipRect(dstTexture.getRenderer().get(), &dstClipRect) == 0);
 
+        dr4::Vec2f safeRadius = dr4::Vec2f(std::fmax(1.0, radius_.x), std::fmax(1.0, radius_.y));
         if (borderThickness_ <= 0) {
             requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
                 dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-                radius_.x, radius_.y, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a) == 0);
+                safeRadius.x, safeRadius.y, fillColor_.r, fillColor_.g, fillColor_.b, fillColor_.a) == 0);
             return;
         }
 
-        dr4::Vec2f innerRadius = radius_ - dr4::Vec2f(borderThickness_, borderThickness_);
+        dr4::Vec2f innerRadius = safeRadius - dr4::Vec2f(borderThickness_, borderThickness_);
         if (innerRadius.x <= 0 || innerRadius.y <= 0) {
             requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
                 dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-                radius_.x, radius_.y, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
+                safeRadius.x, safeRadius.y, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
             return;
         }
 
@@ -231,7 +232,7 @@ void Circle::DrawOn(dr4::Texture &texture) const {
 
         requireSDLCondition(filledEllipseRGBA(dstTexture.getRenderer().get(),
             dstTexture.zero_.x + pos_.x, dstTexture.zero_.y + pos_.y,
-            radius_.x, radius_.y, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
+            safeRadius.x, safeRadius.y, borderColor_.r, borderColor_.g, borderColor_.b, borderColor_.a) == 0);
 
         requireSDLCondition(SDL_SetRenderDrawBlendMode(dstTexture.getRenderer().get(), SDL_BLENDMODE_NONE) == 0);
 
